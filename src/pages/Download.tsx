@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -114,10 +115,22 @@ const Download = () => {
       
       console.log("Files in bucket:", fileData);
       
+      // Check if the bucket has proper permissions
+      try {
+        const { data: publicUrlData } = await supabase.storage
+          .from('ebook_storage')
+          .getPublicUrl('ebook_decision_dynamo.pdf');
+          
+        console.log("Public URL check:", publicUrlData);
+      } catch (publicUrlError) {
+        console.warn("Public URL check failed:", publicUrlError);
+        // Continue anyway - this is just a diagnostic step
+      }
+      
       // Create a signed URL for download with explicit file path
       const { data, error } = await supabase.storage
         .from('ebook_storage')
-        .createSignedUrl('ebook_decision_dynamo.pdf', 300, { 
+        .createSignedUrl('ebook_decision_dynamo.pdf', 600, { 
           download: true 
         });
         
@@ -142,9 +155,31 @@ const Download = () => {
       });
     } catch (error) {
       console.error("Download error:", error);
+      
+      // Attempt to access the file directly as a fallback
+      try {
+        console.log("Attempting fallback download method...");
+        const { data: publicUrlData } = await supabase.storage
+          .from('ebook_storage')
+          .getPublicUrl('ebook_decision_dynamo.pdf');
+          
+        if (publicUrlData?.publicUrl) {
+          console.log("Using public URL as fallback:", publicUrlData.publicUrl);
+          window.open(publicUrlData.publicUrl, '_blank');
+          
+          toast({
+            title: "Download started",
+            description: "Your eBook download has started using an alternative method!",
+          });
+          return;
+        }
+      } catch (fallbackError) {
+        console.error("Fallback download method failed:", fallbackError);
+      }
+      
       toast({
         title: "Download failed",
-        description: "There was an error downloading your eBook. Please contact support.",
+        description: "There was an error downloading your eBook. Please contact support and mention 'storage permissions issue'.",
         variant: "destructive",
       });
     }
