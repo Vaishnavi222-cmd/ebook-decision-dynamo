@@ -71,6 +71,12 @@ const Footer = () => {
             >
               Refund & Cancellation
             </Link>
+            <Link
+              to="/shipping-delivery"
+              className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+            >
+              Shipping & Delivery
+            </Link>
           </nav>
 
           <div className="text-sm text-muted-foreground">
