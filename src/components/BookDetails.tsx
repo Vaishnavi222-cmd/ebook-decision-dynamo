@@ -4,13 +4,10 @@ import Container from "./ui/container";
 import { Check } from "lucide-react";
 
 const features = [
-  "5-step decision-making framework",
-  "30+ real-world case studies",
-  "Decision tree templates",
-  "Risk assessment worksheets",
-  "Cognitive bias reference guide",
-  "Lifetime access to updates",
-  "60-day money-back guarantee"
+  "Proven decision-making techniques",
+  "Strategies to overcome confusion and doubt",
+  "Methods to avoid common decision-making mistakes",
+  "How to think critically and act with clarity"
 ];
 
 const BookDetails = () => {
@@ -65,7 +62,7 @@ const BookDetails = () => {
           <div className="space-y-6 order-2 md:order-1 animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 delay-300 ease-out">
             <h3 className="text-2xl font-bold">Why This eBook?</h3>
             <p className="text-lg text-muted-foreground">
-              In a world of constant choices and information overload, the ability to make smart decisions quickly separates success from stagnation. Decision Dynamo distills decades of research into practical tools you can apply immediately.
+              In a fast-paced world, making the right decisions at the right time can be the key to success. This eBook provides real-world, issue-based decision-making strategies to help you tackle everyday challenges with confidence. Whether it's career choices, relationships, or life decisions, you'll gain practical insights to navigate them effectively.
             </p>
             
             <div className="space-y-4 mt-8">
@@ -80,6 +77,7 @@ const BookDetails = () => {
                   </li>
                 ))}
               </ul>
+              <p className="mt-4 text-primary font-semibold">All this at an affordable price of just ₹199!</p>
             </div>
           </div>
           
