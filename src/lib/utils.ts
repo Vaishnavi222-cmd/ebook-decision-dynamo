@@ -1,7 +1,6 @@
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { supabase } from "@/integrations/supabase/client";
 
 // Add type declaration for the Razorpay object
 declare global {
@@ -38,7 +37,7 @@ export const loadScript = (src: string): Promise<boolean> => {
   });
 };
 
-// Simplified Razorpay payment handler using SDK
+// Simple Razorpay payment handler - no JWT/auth
 export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
   try {
     // Show loading toast
@@ -55,7 +54,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       throw new Error("Failed to load Razorpay checkout script");
     }
 
-    // Create an order - no authorization header
+    // Create an order - SIMPLE IMPLEMENTATION NO AUTH
     const orderResponse = await fetch("https://qftiuthwtvksvflgnrqg.supabase.co/functions/v1/create-order", {
       method: "POST",
       headers: {
@@ -72,7 +71,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     const orderData = await orderResponse.json();
     console.log("Order created successfully:", orderData);
 
-    // Test configuration for Razorpay with order data
+    // Basic Razorpay configuration
     const options = {
       key: orderData.key || "rzp_test_M1QTLNp0XmKPSi",
       amount: orderData.amount || 19900,
@@ -84,7 +83,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       handler: async function(response: any) {
         console.log("Payment successful:", response);
         
-        // Verify the payment - no authorization header
+        // Simple verification - NO AUTH
         const verifyResponse = await fetch("https://qftiuthwtvksvflgnrqg.supabase.co/functions/v1/verify-payment", {
           method: "POST",
           headers: {

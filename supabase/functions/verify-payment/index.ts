@@ -21,7 +21,7 @@ serve(async (req) => {
     });
     
     // In test mode, we simply accept the payment without verification
-    // This is ONLY for development and testing!
+    // NO JWT CHECK - Simple implementation
     
     // Generate a random download token
     const downloadToken = crypto.randomUUID();
