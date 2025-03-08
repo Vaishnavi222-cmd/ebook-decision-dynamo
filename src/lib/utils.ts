@@ -37,7 +37,7 @@ export const loadScript = (src: string): Promise<boolean> => {
   });
 };
 
-// Simple Razorpay payment handler - no JWT/auth
+// Simplified Razorpay payment handler
 export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
   try {
     // Show loading toast
@@ -54,7 +54,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       throw new Error("Failed to load Razorpay checkout script");
     }
 
-    // Create an order - SIMPLE IMPLEMENTATION NO AUTH
+    // Create an order
     const orderResponse = await fetch("https://qftiuthwtvksvflgnrqg.supabase.co/functions/v1/create-order", {
       method: "POST",
       headers: {
@@ -71,10 +71,10 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     const orderData = await orderResponse.json();
     console.log("Order created successfully:", orderData);
 
-    // Basic Razorpay configuration
+    // Configure Razorpay
     const options = {
-      key: orderData.key || "rzp_test_M1QTLNp0XmKPSi",
-      amount: orderData.amount || 19900,
+      key: orderData.key,
+      amount: orderData.amount,
       currency: orderData.currency || "INR",
       name: "Decision Dynamo",
       description: "Premium eBook Purchase",
@@ -83,7 +83,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       handler: async function(response: any) {
         console.log("Payment successful:", response);
         
-        // Simple verification - NO AUTH
+        // Verify payment
         const verifyResponse = await fetch("https://qftiuthwtvksvflgnrqg.supabase.co/functions/v1/verify-payment", {
           method: "POST",
           headers: {

@@ -2,14 +2,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// Test mode constants
-const TEST_KEY_ID = "rzp_test_M1QTLNp0XmKPSi"; // Test key
+// Load Razorpay key values from environment
+const KEY_ID = Deno.env.get("RAZORPAY_KEY_ID") || "rzp_test_M1QTLNp0XmKPSi";
+const KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET") || "";
+
+// Constants
 const AMOUNT = 19900; // Amount in paise (₹199)
 const CURRENCY = "INR";
 
 serve(async (req) => {
   console.log("-----------------------------------");
-  console.log("create-order function called in TEST MODE with method:", req.method);
+  console.log("create-order function called with method:", req.method);
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -18,21 +21,41 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Creating test order with Razorpay: amount=" + AMOUNT + ", currency=" + CURRENCY);
+    console.log("Creating order with Razorpay: amount=" + AMOUNT + ", currency=" + CURRENCY);
     
-    // In test mode, we create a simple order object without calling Razorpay API
-    // This is ONLY for development and testing!
-    const orderId = `order_test_${Date.now()}`;
+    // Create a Razorpay order
+    const orderResponse = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${btoa(`${KEY_ID}:${KEY_SECRET}`)}`
+      },
+      body: JSON.stringify({
+        amount: AMOUNT,
+        currency: CURRENCY,
+        receipt: `receipt_${Date.now()}`
+      })
+    });
+
+    // Check if the order creation was successful
+    if (!orderResponse.ok) {
+      const errorData = await orderResponse.json();
+      console.error("Razorpay error:", errorData);
+      throw new Error(`Razorpay API error: ${errorData.error?.description || 'Unknown error'}`);
+    }
     
-    // Prepare client response with test data - NO JWT CHECK
+    const orderData = await orderResponse.json();
+    console.log("Order created successfully:", orderData);
+    
+    // Prepare client response
     const clientResponse = {
-      id: orderId,
-      amount: AMOUNT,
-      currency: CURRENCY,
-      key: TEST_KEY_ID,
+      id: orderData.id,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      key: KEY_ID,
     };
     
-    console.log("Sending successful test response to client:", JSON.stringify(clientResponse));
+    console.log("Sending successful response to client:", JSON.stringify(clientResponse));
     
     return new Response(JSON.stringify(clientResponse), {
       headers: { 
@@ -42,10 +65,10 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("Error in test order creation:", error.message);
+    console.error("Error in order creation:", error.message);
     
     return new Response(JSON.stringify({ 
-      error: "Test order creation failed",
+      error: "Order creation failed",
       message: error.message
     }), {
       headers: { 
