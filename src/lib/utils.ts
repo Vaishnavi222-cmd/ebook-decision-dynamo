@@ -8,12 +8,22 @@ export function cn(...inputs: ClassValue[]) {
 
 export const loadScript = (src: string): Promise<boolean> => {
   return new Promise((resolve) => {
+    // Check if script is already loaded
+    if (document.querySelector(`script[src="${src}"]`)) {
+      console.log("Script already loaded:", src);
+      resolve(true);
+      return;
+    }
+    
+    console.log("Loading script:", src);
     const script = document.createElement("script");
     script.src = src;
     script.onload = () => {
+      console.log("Script loaded successfully:", src);
       resolve(true);
     };
-    script.onerror = () => {
+    script.onerror = (error) => {
+      console.error("Error loading script:", src, error);
       resolve(false);
     };
     document.body.appendChild(script);
@@ -29,21 +39,41 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     });
 
     // Ensure Razorpay script is loaded
-    await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+    console.log("Loading Razorpay script...");
+    const scriptLoaded = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+    
+    if (!scriptLoaded) {
+      throw new Error("Failed to load Razorpay checkout script");
+    }
 
+    // Get Supabase URL from environment
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!supabaseUrl) {
+      console.error("VITE_SUPABASE_URL is not defined in environment variables");
+      throw new Error("Missing configuration: Supabase URL");
+    }
+    
     // Create order in Razorpay via edge function
-    const orderResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-order`, {
+    console.log("Creating Razorpay order...");
+    console.log("Calling edge function at:", `${supabaseUrl}/functions/v1/create-order`);
+    
+    const orderResponse = await fetch(`${supabaseUrl}/functions/v1/create-order`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
     });
 
+    console.log("Order response status:", orderResponse.status);
+    
     if (!orderResponse.ok) {
+      const errorText = await orderResponse.text();
+      console.error("Order creation failed:", orderResponse.status, errorText);
       throw new Error("Failed to create order");
     }
 
     const orderData = await orderResponse.json();
+    console.log("Order created successfully:", orderData);
 
     // Initialize Razorpay checkout
     const options = {
@@ -55,8 +85,9 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       order_id: orderData.id,
       handler: async function (response: any) {
         try {
+          console.log("Payment successful, verifying payment...");
           // Verify payment with edge function
-          const verifyResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payment`, {
+          const verifyResponse = await fetch(`${supabaseUrl}/functions/v1/verify-payment`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -68,11 +99,16 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
             }),
           });
 
+          console.log("Verification response status:", verifyResponse.status);
+          
           if (!verifyResponse.ok) {
+            const errorText = await verifyResponse.text();
+            console.error("Payment verification failed:", verifyResponse.status, errorText);
             throw new Error("Payment verification failed");
           }
 
           const verificationData = await verifyResponse.json();
+          console.log("Payment verified successfully:", verificationData);
 
           toast({
             title: "Purchase successful!",
@@ -102,6 +138,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       },
       modal: {
         ondismiss: function() {
+          console.log("Payment modal dismissed by user");
           toast({
             title: "Payment cancelled",
             description: "You cancelled the payment process. You can try again whenever you're ready.",
@@ -110,13 +147,21 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       },
     };
 
+    console.log("Initializing Razorpay with options:", JSON.stringify(options));
+    
+    if (!window.Razorpay) {
+      throw new Error("Razorpay not loaded");
+    }
+    
     const razorpay = new window.Razorpay(options);
     razorpay.open();
   } catch (error) {
     console.error("Purchase error:", error);
     toast({
       title: "Error",
-      description: "There was an error processing your purchase. Please try again.",
+      description: typeof error === "object" && error !== null && "message" in error 
+        ? `Payment error: ${error.message}`
+        : "There was an error processing your purchase. Please try again.",
       variant: "destructive",
     });
   }

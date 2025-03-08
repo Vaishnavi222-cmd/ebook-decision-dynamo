@@ -8,23 +8,44 @@ const AMOUNT = 19900; // Amount in paise (₹199)
 const CURRENCY = "INR";
 
 serve(async (req) => {
-  console.log("create-order function called");
+  console.log("-----------------------------------");
+  console.log("create-order function called with method:", req.method);
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request - responding with CORS headers");
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    // Check API keys
     if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-      console.error("Missing Razorpay API keys");
-      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+      console.error("ERROR: Missing Razorpay API keys");
+      console.log("RAZORPAY_KEY_ID exists:", !!RAZORPAY_KEY_ID);
+      console.log("RAZORPAY_KEY_SECRET exists:", !!RAZORPAY_KEY_SECRET);
+      
+      return new Response(JSON.stringify({ 
+        error: "Server configuration error", 
+        message: "Razorpay API keys are not configured properly"
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
       });
     }
 
     console.log("Creating order with Razorpay: amount=" + AMOUNT + ", currency=" + CURRENCY);
+    
+    // Prepare request data
+    const orderData = {
+      amount: AMOUNT,
+      currency: CURRENCY,
+      receipt: `receipt_${Date.now()}`,
+      notes: {
+        product: "Decision Dynamo eBook"
+      }
+    };
+    
+    console.log("Order request payload:", JSON.stringify(orderData));
     
     // Create order in Razorpay
     const response = await fetch("https://api.razorpay.com/v1/orders", {
@@ -33,19 +54,23 @@ serve(async (req) => {
         "Content-Type": "application/json",
         "Authorization": `Basic ${btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`)}`,
       },
-      body: JSON.stringify({
-        amount: AMOUNT,
-        currency: CURRENCY,
-        receipt: `receipt_${Date.now()}`,
-        notes: {
-          product: "Decision Dynamo eBook"
-        }
-      }),
+      body: JSON.stringify(orderData),
     });
 
+    // Log response status
+    console.log("Razorpay API response status:", response.status);
+    
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error("Razorpay API error:", response.status, errorData);
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { raw: errorText };
+      }
+      
+      console.error("Razorpay API error:", response.status, JSON.stringify(errorData));
+      
       return new Response(JSON.stringify({ 
         error: "Razorpay API error", 
         status: response.status,
@@ -59,12 +84,17 @@ serve(async (req) => {
     const order = await response.json();
     console.log("Order created successfully. Order ID:", order.id);
     
-    return new Response(JSON.stringify({ 
+    // Prepare client response
+    const clientResponse = {
       id: order.id,
       amount: order.amount,
       currency: order.currency,
       key: RAZORPAY_KEY_ID
-    }), {
+    };
+    
+    console.log("Sending successful response to client:", JSON.stringify(clientResponse));
+    
+    return new Response(JSON.stringify(clientResponse), {
       headers: { 
         ...corsHeaders,
         "Content-Type": "application/json" 
@@ -72,11 +102,14 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("Error creating Razorpay order:", error.message, error.stack);
+    console.error("Critical error creating Razorpay order:");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    
     return new Response(JSON.stringify({ 
       error: "Failed to create order",
       message: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+      stack: error.stack
     }), {
       headers: { 
         ...corsHeaders,
