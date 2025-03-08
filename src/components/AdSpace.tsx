@@ -6,7 +6,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AdSpaceProps {
   className?: string;
-  position?: "top" | "middle" | "bottom" | "header";
+  position?: "top" | "middle" | "bottom";
 }
 
 const AdSpace: React.FC<AdSpaceProps> = ({ 
@@ -16,34 +16,6 @@ const AdSpace: React.FC<AdSpaceProps> = ({
   const adContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   
-  // Only load the ad script on mobile devices and only for the header position
-  useEffect(() => {
-    if (isMobile && position === "header" && adContainerRef.current) {
-      // Clear the container first
-      adContainerRef.current.innerHTML = '';
-      
-      // Create a script element and insert it directly into the DOM
-      const script = document.createElement('script');
-      script.innerHTML = `
-        (function(luls){
-          var d = document,
-              s = d.createElement('script'),
-              l = d.scripts[d.scripts.length - 1];
-          s.settings = luls || {};
-          s.src = "//villainous-appointment.com/bXXPV/s-d.Gula0ZYhWOdMiPYNWY5/uWZJXKIW/WeHm/9UuTZXUwlvkuP-TVYGxUNATiUwyfO/DbUQtzNWjuEX1FNSTyI/4/N/gV";
-          s.async = true;
-          s.referrerPolicy = 'no-referrer-when-downgrade';
-          l.parentNode.insertBefore(s, l);
-        })({})
-      `;
-      
-      // Append the script directly to the container
-      adContainerRef.current.appendChild(script);
-      
-      console.log("Mobile ad script inserted for header position");
-    }
-  }, [isMobile, position]);
-
   useEffect(() => {
     // Log whether we're on mobile and the current position for debugging
     console.log(`AdSpace: isMobile=${isMobile}, position=${position}`);
@@ -57,29 +29,20 @@ const AdSpace: React.FC<AdSpaceProps> = ({
             "mx-auto overflow-hidden rounded-lg border border-dashed border-primary/20 p-3 text-center bg-secondary/20",
             {
               "max-w-md": position === "middle",
-              "max-w-lg": position === "top" || position === "bottom",
-              "max-w-xs": position === "header" // Smaller container for header ad
+              "max-w-lg": position === "top" || position === "bottom"
             }
           )}
         >
           <div className="text-muted-foreground text-xs font-medium mb-1">
-            {isMobile && position === "header" ? "Mobile Ad" : `Advertisement Space - ${position}`}
+            {`Advertisement Space - ${position}`}
           </div>
           <div 
             ref={adContainerRef}
-            className={cn(
-              "flex items-center justify-center",
-              {
-                "h-40": position !== "header",
-                "h-[250px] w-[300px] mx-auto": position === "header" // Standard 300x250 mobile ad dimensions
-              }
-            )}
+            className="flex items-center justify-center h-40"
           >
-            {(!isMobile || position !== "header") && (
-              <span className="text-muted-foreground/50 text-sm">
-                {isMobile ? "Mobile ad will appear here" : "Ad content will appear here"}
-              </span>
-            )}
+            <span className="text-muted-foreground/50 text-sm">
+              {isMobile ? "Mobile ad will appear here" : "Ad content will appear here"}
+            </span>
           </div>
         </div>
       </Container>
