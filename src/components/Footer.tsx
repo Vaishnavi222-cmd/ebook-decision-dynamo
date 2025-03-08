@@ -2,6 +2,7 @@
 import React from "react";
 import Container from "./ui/container";
 import { BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -40,6 +41,30 @@ const Footer = () => {
             >
               Contact
             </a>
+            <Link
+              to="/disclaimer"
+              className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+            >
+              Disclaimer
+            </Link>
+            <Link
+              to="/terms"
+              className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+            >
+              Terms & Conditions
+            </Link>
+            <Link
+              to="/privacy"
+              className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              to="/refund"
+              className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+            >
+              Refund & Cancellation
+            </Link>
           </nav>
 
           <div className="text-sm text-muted-foreground">

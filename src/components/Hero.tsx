@@ -8,8 +8,14 @@ const Hero = () => {
   return (
     <section className="pt-20 pb-16 overflow-hidden">
       <Container>
+        {/* Heading at the top */}
+        <h2 className="text-2xl md:text-3xl font-semibold text-primary text-center mb-12">
+          Download Our Comprehensive Guide
+        </h2>
+        
+        {/* Content row with image left, text right */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="order-2 lg:order-1">
+          <div>
             <img
               src="/lovable-uploads/2d5d4bda-b97c-4e64-a427-53e3ef0cf438.png"
               alt="The Art of Smart Decisions Book Cover"
@@ -18,9 +24,7 @@ const Hero = () => {
             />
           </div>
 
-          <div className="space-y-6 order-1 lg:order-2">
-            <h2 className="text-xl font-semibold text-primary">Download Our Comprehensive Guide</h2>
-            
+          <div className="space-y-6">
             <h1 className="text-3xl sm:text-4xl font-bold leading-tight">
               The Art of Smart Decisions: A Practical Guide to Confident Choices
             </h1>
