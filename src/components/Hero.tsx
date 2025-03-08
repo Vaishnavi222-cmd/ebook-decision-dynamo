@@ -44,7 +44,7 @@ const Hero = () => {
               </Button>
               
               <div className="text-2xl font-bold">
-                ₹180
+                ₹180 <span className="text-sm font-normal text-muted-foreground">only</span>
               </div>
             </div>
           </div>

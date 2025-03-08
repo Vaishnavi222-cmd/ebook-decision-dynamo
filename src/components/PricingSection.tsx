@@ -53,13 +53,13 @@ const PricingSection = () => {
       <Container>
         <div className="max-w-3xl mx-auto text-center mb-16 animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out">
           <div className="inline-block bg-primary/5 px-4 py-1 rounded-full text-sm font-medium text-primary mb-4">
-            Pricing
+            Very Affordable
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-            Invest in Better Decision-Making
+            Premium Knowledge at an Affordable Price
           </h2>
           <p className="text-lg text-muted-foreground">
-            Choose the option that works best for you and transform your decision-making process today.
+            Get in-depth knowledge that transforms your decision-making without breaking the bank.
           </p>
         </div>
 
@@ -68,43 +68,26 @@ const PricingSection = () => {
             <div className="p-8 text-center">
               <div className="flex justify-center gap-4 mb-8">
                 <Button
-                  variant={selectedPayment === "one-time" ? "default" : "outline"}
-                  className={cn("rounded-full px-6", 
-                    selectedPayment === "one-time" ? "shadow-md" : "")}
-                  onClick={() => setSelectedPayment("one-time")}
+                  variant="default"
+                  className="rounded-full px-6 shadow-md"
                 >
                   <CreditCard className="mr-2 h-4 w-4" />
                   One-time purchase
-                </Button>
-                <Button
-                  variant={selectedPayment === "subscription" ? "default" : "outline"}
-                  className={cn("rounded-full px-6", 
-                    selectedPayment === "subscription" ? "shadow-md" : "")}
-                  onClick={() => setSelectedPayment("subscription")}
-                >
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  Monthly subscription
                 </Button>
               </div>
 
               <div className="flex items-end justify-center gap-2 mb-6">
                 <span className="text-5xl font-bold">
-                  {selectedPayment === "one-time" ? "$29" : "$4"}
+                  ₹180
                 </span>
                 <span className="text-muted-foreground mb-1">
-                  {selectedPayment === "one-time" ? ".99" : ".99/month"}
+                  only
                 </span>
               </div>
 
-              {selectedPayment === "one-time" ? (
-                <p className="text-muted-foreground mb-8">
-                  One-time payment, lifetime access to current edition + 1 year of updates
-                </p>
-              ) : (
-                <p className="text-muted-foreground mb-8">
-                  Cancel anytime. Includes all future updates and expanded resources.
-                </p>
-              )}
+              <p className="text-muted-foreground mb-8">
+                One-time payment for lifetime access to comprehensive knowledge and resources
+              </p>
 
               <Button 
                 size="lg" 
@@ -115,32 +98,32 @@ const PricingSection = () => {
               </Button>
 
               <div className="mt-4 text-sm text-muted-foreground">
-                60-day money-back guarantee. No questions asked.
+                100% satisfaction guaranteed or your money back
               </div>
             </div>
 
             <div className="border-t p-8">
-              <h3 className="font-semibold text-lg mb-4">What's included:</h3>
+              <h3 className="font-semibold text-lg mb-4">What's included in this affordable price:</h3>
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary" />
-                  <span>Full 200+ page eBook (PDF, ePub & Kindle formats)</span>
+                  <span>Complete in-depth knowledge resource (PDF, ePub & Kindle formats)</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary" />
-                  <span>30+ decision-making templates and worksheets</span>
+                  <span>25+ practical worksheets and templates</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary" />
-                  <span>Video course with 10 in-depth lessons</span>
+                  <span>Comprehensive explanations with real-world examples</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary" />
-                  <span>Access to exclusive case studies</span>
+                  <span>Expert insights and proven strategies</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary" />
-                  <span>Decision framework quick-reference cards</span>
+                  <span>Lifetime access to all future updates</span>
                 </li>
               </ul>
             </div>
