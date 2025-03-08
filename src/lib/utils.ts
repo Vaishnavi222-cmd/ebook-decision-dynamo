@@ -55,27 +55,64 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       throw new Error("Failed to load Razorpay checkout script");
     }
 
-    // Test configuration for Razorpay
+    // Create an order - no authorization header
+    const orderResponse = await fetch("https://qftiuthwtvksvflgnrqg.supabase.co/functions/v1/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ amount: 19900 })
+    });
+
+    if (!orderResponse.ok) {
+      const errorData = await orderResponse.json();
+      throw new Error(`Order creation failed: ${errorData.message || orderResponse.statusText}`);
+    }
+
+    const orderData = await orderResponse.json();
+    console.log("Order created successfully:", orderData);
+
+    // Test configuration for Razorpay with order data
     const options = {
-      key: "rzp_test_M1QTLNp0XmKPSi", // Replace with your test key
-      amount: 19900, // Amount in paise (₹199)
-      currency: "INR",
+      key: orderData.key || "rzp_test_M1QTLNp0XmKPSi",
+      amount: orderData.amount || 19900,
+      currency: orderData.currency || "INR",
       name: "Decision Dynamo",
       description: "Premium eBook Purchase",
+      order_id: orderData.id,
       image: "/lovable-uploads/2d5d4bda-b97c-4e64-a427-53e3ef0cf438.png",
-      handler: function(response: any) {
+      handler: async function(response: any) {
         console.log("Payment successful:", response);
+        
+        // Verify the payment - no authorization header
+        const verifyResponse = await fetch("https://qftiuthwtvksvflgnrqg.supabase.co/functions/v1/verify-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature
+          })
+        });
+
+        if (!verifyResponse.ok) {
+          const errorData = await verifyResponse.json();
+          throw new Error(`Payment verification failed: ${errorData.message || verifyResponse.statusText}`);
+        }
+
+        const verifyData = await verifyResponse.json();
+        console.log("Payment verification successful:", verifyData);
+        
         toast({
           title: "Purchase successful!",
           description: "Your payment was successful. Redirecting to download page...",
         });
         
-        // Generate a temporary download token
-        const downloadToken = crypto.randomUUID();
-        
-        // Navigate to download page with token
+        // Navigate to download page with token from verification
         setTimeout(() => {
-          navigate(`/download?token=${downloadToken}`);
+          navigate(`/download?token=${verifyData.download_token}`);
         }, 1500);
       },
       prefill: {
