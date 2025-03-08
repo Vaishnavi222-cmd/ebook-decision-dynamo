@@ -26,6 +26,7 @@ const AdSpace: React.FC<AdSpaceProps> = ({
       // Create and inject the script element
       const scriptEl = document.createElement("script");
       scriptEl.setAttribute('data-ad-script', 'true');
+      // Use corrected script format to ensure proper rendering
       scriptEl.innerHTML = `
         (function(xhptg){
           var d = document,
@@ -40,19 +41,43 @@ const AdSpace: React.FC<AdSpaceProps> = ({
       `;
       adRef.current.appendChild(scriptEl);
 
-      // Create a placeholder div to ensure ad has space to render
-      const placeholderDiv = document.createElement('div');
-      placeholderDiv.id = 'ad-container';
-      placeholderDiv.style.width = '100%';
-      placeholderDiv.style.minHeight = '60px';
-      placeholderDiv.style.display = 'block';
-      placeholderDiv.style.overflow = 'hidden';
-      adRef.current.appendChild(placeholderDiv);
-
-      // Clean up function to remove script when component unmounts
+      // Create and append an iframe to ensure ad visibility
+      const adFrame = document.createElement('iframe');
+      adFrame.id = 'ad-frame';
+      adFrame.style.width = '100%';
+      adFrame.style.height = '60px';
+      adFrame.style.border = 'none';
+      adFrame.style.overflow = 'hidden';
+      adFrame.style.display = 'block';
+      adFrame.setAttribute('allowtransparency', 'true');
+      adFrame.setAttribute('frameborder', '0');
+      adFrame.setAttribute('scrolling', 'no');
+      adFrame.setAttribute('marginheight', '0');
+      adFrame.setAttribute('marginwidth', '0');
+      
+      // Auto-resize iframe content based on the content inside
+      adFrame.onload = () => {
+        try {
+          // Force a redraw of the frame to ensure content visibility
+          adFrame.style.height = '61px';
+          setTimeout(() => {
+            adFrame.style.height = '60px';
+          }, 100);
+        } catch (e) {
+          console.error('Error adjusting iframe:', e);
+        }
+      };
+      
+      adRef.current.appendChild(adFrame);
+      
+      // Clean up function to remove script and iframe when component unmounts
       return () => {
         const scripts = adRef.current?.querySelectorAll('[data-ad-script="true"]');
         scripts?.forEach(script => script.remove());
+        const frame = document.getElementById('ad-frame');
+        if (frame && frame.parentNode) {
+          frame.parentNode.removeChild(frame);
+        }
       };
     }
   }, [position]);
@@ -80,6 +105,11 @@ const AdSpace: React.FC<AdSpaceProps> = ({
                 "ad-container": position === "header"
               }
             )}
+            style={{
+              overflow: 'visible',
+              position: 'relative',
+              zIndex: 5
+            }}
           >
             {position !== "header" && (
               <span className="text-muted-foreground/50">Ad content will appear here</span>
