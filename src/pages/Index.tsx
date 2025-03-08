@@ -35,7 +35,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
-      <main className="pt-16">
+      <AdSpace position="top" className="mt-16 py-4" />
+      <main>
         <Hero />
         <AdSpace position="top" className="py-6" />
         <BookDetails />
