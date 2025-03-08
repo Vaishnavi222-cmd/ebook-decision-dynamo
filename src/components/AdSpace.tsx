@@ -17,15 +17,6 @@ const AdSpace: React.FC<AdSpaceProps> = ({
   useEffect(() => {
     // Only inject the ad script for the header position
     if (position === "header" && adRef.current) {
-      // Clear any previous content
-      adRef.current.innerHTML = "";
-      
-      // Create container for the ad
-      const adContainer = document.createElement("div");
-      adContainer.className = "w-full h-full";
-      adRef.current.appendChild(adContainer);
-      
-      // Create and inject the ad script
       const scriptEl = document.createElement("script");
       scriptEl.innerHTML = `
         (function(xhptg){
@@ -39,12 +30,12 @@ const AdSpace: React.FC<AdSpaceProps> = ({
           l.parentNode.insertBefore(s, l);
         })({})
       `;
-      adContainer.appendChild(scriptEl);
+      adRef.current.appendChild(scriptEl);
 
       // Clean up function to remove script when component unmounts
       return () => {
-        if (adRef.current) {
-          adRef.current.innerHTML = "";
+        if (adRef.current && scriptEl.parentNode) {
+          adRef.current.removeChild(scriptEl);
         }
       };
     }
@@ -68,11 +59,7 @@ const AdSpace: React.FC<AdSpaceProps> = ({
           </div>
           <div 
             ref={adRef} 
-            className={cn(
-              "flex items-center justify-center relative",
-              position === "header" ? "min-h-[150px] sm:min-h-[200px]" : "min-h-[60px] sm:min-h-[90px]"
-            )}
-            id={`ad-space-${position}`}
+            className="min-h-[60px] sm:min-h-[90px] flex items-center justify-center relative"
           >
             {position !== "header" && (
               <span className="text-muted-foreground/50">Ad content will appear here</span>
