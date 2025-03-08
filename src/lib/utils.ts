@@ -55,16 +55,23 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     }
 
     // Create an order
+    console.log("Creating order...");
     const orderResponse = await fetch("https://qftiuthwtvksvflgnrqg.supabase.co/functions/v1/create-order", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ amount: 19900 })
+      }
     });
 
     if (!orderResponse.ok) {
-      const errorData = await orderResponse.json();
+      const errorText = await orderResponse.text();
+      console.error("Order creation response:", orderResponse.status, errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText };
+      }
       throw new Error(`Order creation failed: ${errorData.message || orderResponse.statusText}`);
     }
 
@@ -84,35 +91,44 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
         console.log("Payment successful:", response);
         
         // Verify payment
-        const verifyResponse = await fetch("https://qftiuthwtvksvflgnrqg.supabase.co/functions/v1/verify-payment", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature
-          })
-        });
+        try {
+          const verifyResponse = await fetch("https://qftiuthwtvksvflgnrqg.supabase.co/functions/v1/verify-payment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
+            })
+          });
 
-        if (!verifyResponse.ok) {
-          const errorData = await verifyResponse.json();
-          throw new Error(`Payment verification failed: ${errorData.message || verifyResponse.statusText}`);
+          if (!verifyResponse.ok) {
+            const errorData = await verifyResponse.json();
+            throw new Error(`Payment verification failed: ${errorData.message || verifyResponse.statusText}`);
+          }
+
+          const verifyData = await verifyResponse.json();
+          console.log("Payment verification successful:", verifyData);
+          
+          toast({
+            title: "Purchase successful!",
+            description: "Your payment was successful. Redirecting to download page...",
+          });
+          
+          // Navigate to download page with token from verification
+          setTimeout(() => {
+            navigate(`/download?token=${verifyData.download_token}`);
+          }, 1500);
+        } catch (verifyError) {
+          console.error("Verification error:", verifyError);
+          toast({
+            title: "Verification issue",
+            description: "Payment was received but verification had an issue. Please contact support.",
+            variant: "destructive",
+          });
         }
-
-        const verifyData = await verifyResponse.json();
-        console.log("Payment verification successful:", verifyData);
-        
-        toast({
-          title: "Purchase successful!",
-          description: "Your payment was successful. Redirecting to download page...",
-        });
-        
-        // Navigate to download page with token from verification
-        setTimeout(() => {
-          navigate(`/download?token=${verifyData.download_token}`);
-        }, 1500);
       },
       prefill: {
         name: "",
