@@ -68,7 +68,7 @@ const AdSpace: React.FC<AdSpaceProps> = ({
               {
                 "max-w-3xl": position === "middle",
                 "max-w-full": position === "top" || position === "bottom",
-                "pt-20": position === "header"
+                "pt-20": position === "header" // This line was causing the error, but we're in the else clause where position !== "header"
               }
             )}
           >
