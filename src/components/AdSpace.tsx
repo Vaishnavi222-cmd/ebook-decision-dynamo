@@ -23,46 +23,11 @@ const AdSpace: React.FC<AdSpaceProps> = ({
         adRef.current.innerHTML = '';
       }
       
-      // Create and inject the script element
-      const scriptEl = document.createElement("script");
-      scriptEl.setAttribute('data-ad-script', 'true');
-      
-      // Use different script based on position
-      if (position === "header") {
-        scriptEl.innerHTML = `
-          (function(xhptg){
-            var d = document,
-                s = d.createElement('script'),
-                l = d.scripts[d.scripts.length - 1];
-            s.settings = xhptg || {};
-            s.src = "//villainous-appointment.com/b/X.VpsqdKGblw0/YNW/dwiAYNWQ5_uuZdXuIB/NeGmo9BulZhUTlHkbP/TnYUxUNlTzU/wSOxTgg/tFNyjOEb1SNUTLA/5dO/QZ";
-            s.async = true;
-            s.referrerPolicy = 'no-referrer-when-downgrade';
-            l.parentNode.insertBefore(s, l);
-          })({})
-        `;
-      } else if (position === "top") {
-        scriptEl.innerHTML = `
-          (function(nkb){
-            var d = document,
-                s = d.createElement('script'),
-                l = d.scripts[d.scripts.length - 1];
-            s.settings = nkb || {};
-            s.src = "//villainous-appointment.com/bJXAV.s-diGXl-0lYjWYd/ikY/WV5YunZYX/Ix/PeZmv9HuJZZUtlWkGPMTDYjxqNvThUmx/OmDoIitUNxjDET1FNXTjEi4/Mzwg";
-            s.async = true;
-            s.referrerPolicy = 'no-referrer-when-downgrade';
-            l.parentNode.insertBefore(s, l);
-          })({})
-        `;
-      }
-      
-      adRef.current.appendChild(scriptEl);
-
-      // Create and append an iframe to ensure ad visibility
+      // Create the iframe first to ensure it's ready for ad content
       const adFrame = document.createElement('iframe');
       adFrame.id = position === "header" ? 'header-ad-frame' : 'top-ad-frame';
       adFrame.style.width = '100%';
-      adFrame.style.height = '60px';
+      adFrame.style.height = '90px'; // Increased height for better visibility
       adFrame.style.border = 'none';
       adFrame.style.overflow = 'hidden';
       adFrame.style.display = 'block';
@@ -72,25 +37,81 @@ const AdSpace: React.FC<AdSpaceProps> = ({
       adFrame.setAttribute('marginheight', '0');
       adFrame.setAttribute('marginwidth', '0');
       
-      // Auto-resize iframe content based on the content inside
+      adRef.current.appendChild(adFrame);
+      
+      // Wait for iframe to load before injecting the script
       adFrame.onload = () => {
         try {
-          // Force a redraw of the frame to ensure content visibility
-          adFrame.style.height = '61px';
-          setTimeout(() => {
-            adFrame.style.height = '60px';
-          }, 100);
+          // Get the iframe document
+          const iframeDoc = adFrame.contentDocument || adFrame.contentWindow?.document;
+          
+          if (iframeDoc) {
+            // Create a full HTML structure in the iframe
+            iframeDoc.open();
+            iframeDoc.write('<html><head></head><body style="margin:0; padding:0;"></body></html>');
+            iframeDoc.close();
+            
+            // Create and inject the script element into the iframe body
+            const scriptEl = document.createElement("script");
+            scriptEl.setAttribute('data-ad-script', 'true');
+            
+            // Use different script based on position
+            if (position === "header") {
+              scriptEl.innerHTML = `
+                (function(xhptg){
+                  var d = document,
+                      s = d.createElement('script'),
+                      l = d.scripts[d.scripts.length - 1];
+                  s.settings = xhptg || {};
+                  s.src = "//villainous-appointment.com/b/X.VpsqdKGblw0/YNW/dwiAYNWQ5_uuZdXuIB/NeGmo9BulZhUTlHkbP/TnYUxUNlTzU/wSOxTgg/tFNyjOEb1SNUTLA/5dO/QZ";
+                  s.async = true;
+                  s.referrerPolicy = 'no-referrer-when-downgrade';
+                  l.parentNode.insertBefore(s, l);
+                })({})
+              `;
+            } else if (position === "top") {
+              scriptEl.innerHTML = `
+                (function(nkb){
+                  var d = document,
+                      s = d.createElement('script'),
+                      l = d.scripts[d.scripts.length - 1];
+                  s.settings = nkb || {};
+                  s.src = "//villainous-appointment.com/bJXAV.s-diGXl-0lYjWYd/ikY/WV5YunZYX/Ix/PeZmv9HuJZZUtlWkGPMTDYjxqNvThUmx/OmDoIitUNxjDET1FNXTjEi4/Mzwg";
+                  s.async = true;
+                  s.referrerPolicy = 'no-referrer-when-downgrade';
+                  l.parentNode.insertBefore(s, l);
+                })({})
+              `;
+            }
+            
+            // Append the script to the iframe body
+            iframeDoc.body.appendChild(scriptEl);
+            
+            // Also add a fallback visible content in case script doesn't render
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.style.width = '100%';
+            fallbackDiv.style.height = '90px';
+            fallbackDiv.style.backgroundColor = '#f0f0f0';
+            fallbackDiv.style.display = 'flex';
+            fallbackDiv.style.alignItems = 'center';
+            fallbackDiv.style.justifyContent = 'center';
+            fallbackDiv.style.cursor = 'pointer';
+            fallbackDiv.innerHTML = '<span style="color:#555;">Advertisement</span>';
+            
+            // Only add fallback if no content is generated after a short delay
+            setTimeout(() => {
+              if (iframeDoc.body.childNodes.length <= 1) {
+                iframeDoc.body.appendChild(fallbackDiv);
+              }
+            }, 1000);
+          }
         } catch (e) {
-          console.error('Error adjusting iframe:', e);
+          console.error('Error setting up iframe content:', e);
         }
       };
       
-      adRef.current.appendChild(adFrame);
-      
-      // Clean up function to remove script and iframe when component unmounts
+      // Clean up function to remove iframe when component unmounts
       return () => {
-        const scripts = adRef.current?.querySelectorAll('[data-ad-script="true"]');
-        scripts?.forEach(script => script.remove());
         const frameId = position === "header" ? 'header-ad-frame' : 'top-ad-frame';
         const frame = document.getElementById(frameId);
         if (frame && frame.parentNode) {
