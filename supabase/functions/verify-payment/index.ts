@@ -11,6 +11,11 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 serve(async (req) => {
   console.log("verify-payment function called");
   
+  // Configuration debug logging
+  console.log("RAZORPAY_KEY_SECRET:", RAZORPAY_KEY_SECRET ? "Loaded" : "MISSING");
+  console.log("Supabase URL:", supabaseUrl ? "Loaded" : "MISSING");
+  console.log("Supabase Service Key:", supabaseServiceKey ? "Loaded" : "MISSING");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -58,6 +63,10 @@ serve(async (req) => {
     const generatedSignature = Array.from(new Uint8Array(encodedPayload))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
+    
+    // Log signatures for debugging
+    console.log("Received Signature:", razorpay_signature);
+    console.log("Generated Signature (first 10 chars):", generatedSignature.substring(0, 10) + "...");
     
     const isSignatureValid = generatedSignature === razorpay_signature;
     
