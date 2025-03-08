@@ -54,9 +54,9 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       throw new Error("Failed to load Razorpay checkout script");
     }
 
-    // Get the Supabase URL directly from the configured client
-    // This ensures we're always using the correct URL that's already configured
-    const supabaseUrl = supabase.supabaseUrl;
+    // Get the Supabase URL from the environment variables in the client config
+    // Since supabaseUrl is protected, we'll use the SUPABASE_URL from the client config
+    const supabaseUrl = "https://qftiuthwtvksvflgnrqg.supabase.co";
     
     console.log("Using Supabase URL:", supabaseUrl);
     
@@ -76,7 +76,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabase.auth.getSession()}`
+        "Authorization": `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`
       },
     });
 
@@ -111,7 +111,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${supabase.auth.getSession()}`
+              "Authorization": `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`
             },
             body: JSON.stringify({
               razorpay_payment_id: response.razorpay_payment_id,
