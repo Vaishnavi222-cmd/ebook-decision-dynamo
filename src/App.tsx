@@ -12,6 +12,7 @@ import Refund from "./pages/Refund";
 import Contact from "./pages/Contact";
 import ShippingDelivery from "./pages/ShippingDelivery";
 import NotFound from "./pages/NotFound";
+import Download from "./pages/Download";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/refund" element={<Refund />} />
           <Route path="/contact-us" element={<Contact />} />
           <Route path="/shipping-delivery" element={<ShippingDelivery />} />
+          <Route path="/download" element={<Download />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

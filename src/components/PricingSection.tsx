@@ -2,20 +2,64 @@
 import React, { useEffect, useRef, useState } from "react";
 import Container from "./ui/container";
 import { Button } from "@/components/ui/button";
-import { Check, CreditCard, DollarSign } from "lucide-react";
+import { Check, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const PricingSection = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [selectedPayment, setSelectedPayment] = useState<"one-time" | "subscription">("one-time");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handlePurchase = () => {
-    toast({
-      title: "Purchase initiated",
-      description: "This would connect to a payment processor in a real application.",
-    });
+  const handlePurchase = async () => {
+    try {
+      // Create a temporary purchase record
+      const { data, error } = await supabase
+        .from('purchases')
+        .insert([
+          { 
+            amount: 180, 
+            payment_status: 'pending',
+            // Set token expiration to 5 minutes from now
+            token_expires_at: new Date(new Date().getTime() + 5 * 60 * 1000).toISOString()
+          }
+        ])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Purchase initiated",
+        description: "Starting the payment process...",
+      });
+      
+      // Here you would normally integrate with Razorpay
+      // For now, we'll simulate a successful payment and redirect to download page
+      
+      // In a real implementation, you would:
+      // 1. Initialize Razorpay with order details
+      // 2. On successful payment, update payment_status to 'completed'
+      // 3. Then redirect to the download page
+      
+      // Simulate successful payment (remove this in production)
+      setTimeout(() => {
+        // Navigate to download page with token
+        navigate(`/download?token=${data.download_token}`);
+      }, 1500);
+      
+      // NOTE: In production, remove the setTimeout and redirect only after
+      // Razorpay confirms the payment was successful
+    } catch (error) {
+      console.error("Purchase error:", error);
+      toast({
+        title: "Error",
+        description: "There was an error processing your purchase. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {
@@ -96,8 +140,6 @@ const PricingSection = () => {
               >
                 Buy Now
               </Button>
-
-              {/* Removed the satisfaction guarantee text */}
             </div>
 
             <div className="border-t p-8">
