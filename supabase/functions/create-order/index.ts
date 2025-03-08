@@ -47,14 +47,21 @@ serve(async (req) => {
     
     console.log("Order request payload:", JSON.stringify(orderData));
     
-    // Create order in Razorpay
+    // Fix: Correctly format the authorization header
+    // Format: "Basic " + btoa(RAZORPAY_KEY_ID + ":" + RAZORPAY_KEY_SECRET)
+    const authHeader = "Basic " + btoa(RAZORPAY_KEY_ID + ":" + RAZORPAY_KEY_SECRET);
+    console.log("Authorization header format (first 10 chars):", authHeader.substring(0, 10) + "...");
+    
+    // Create order in Razorpay with proper headers and mode
     const response = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`)}`,
+        "Authorization": authHeader,
       },
       body: JSON.stringify(orderData),
+      // Add mode: "cors" for proper CORS handling
+      mode: "cors",
     });
 
     // Log response status

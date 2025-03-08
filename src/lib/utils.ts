@@ -54,8 +54,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       throw new Error("Failed to load Razorpay checkout script");
     }
 
-    // Get the Supabase URL from the environment variables in the client config
-    // Since supabaseUrl is protected, we'll use the SUPABASE_URL from the client config
+    // Hardcoded Supabase URL to avoid environment variable issues
     const supabaseUrl = "https://qftiuthwtvksvflgnrqg.supabase.co";
     
     console.log("Using Supabase URL:", supabaseUrl);
@@ -68,6 +67,11 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     // Create order in Razorpay via edge function
     console.log("Creating Razorpay order...");
     
+    // Get the current session token for authentication
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token || '';
+    console.log("Access token available:", !!accessToken);
+    
     // Ensure URL is correctly formatted without double slashes
     const createOrderUrl = `${supabaseUrl}/functions/v1/create-order`;
     console.log("Calling edge function at:", createOrderUrl);
@@ -76,7 +80,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`
+        "Authorization": `Bearer ${accessToken}`
       },
     });
 
@@ -102,6 +106,10 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       handler: async function (response: any) {
         try {
           console.log("Payment successful, verifying payment...");
+          // Get a fresh session token for verification
+          const { data: verifySessionData } = await supabase.auth.getSession();
+          const verifyAccessToken = verifySessionData.session?.access_token || '';
+          
           // Construct verification URL properly
           const verifyUrl = `${supabaseUrl}/functions/v1/verify-payment`;
           console.log("Calling verification function at:", verifyUrl);
@@ -111,7 +119,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`
+              "Authorization": `Bearer ${verifyAccessToken}`
             },
             body: JSON.stringify({
               razorpay_payment_id: response.razorpay_payment_id,
