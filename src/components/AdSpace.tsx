@@ -22,9 +22,9 @@ const AdSpace: React.FC<AdSpaceProps> = ({
       // Clear the container first
       adContainerRef.current.innerHTML = '';
       
-      // Create the script element
-      const scriptEl = document.createElement('script');
-      scriptEl.innerHTML = `
+      // Create a script element and insert it directly into the DOM
+      const script = document.createElement('script');
+      script.innerHTML = `
         (function(luls){
           var d = document,
               s = d.createElement('script'),
@@ -37,9 +37,16 @@ const AdSpace: React.FC<AdSpaceProps> = ({
         })({})
       `;
       
-      // Append the script to the container
-      adContainerRef.current.appendChild(scriptEl);
+      // Append the script directly to the container
+      adContainerRef.current.appendChild(script);
+      
+      console.log("Mobile ad script inserted for header position");
     }
+  }, [isMobile, position]);
+
+  useEffect(() => {
+    // Log whether we're on mobile and the current position for debugging
+    console.log(`AdSpace: isMobile=${isMobile}, position=${position}`);
   }, [isMobile, position]);
 
   return (
