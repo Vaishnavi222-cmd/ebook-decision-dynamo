@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,15 +131,7 @@ const Download = () => {
       });
       
       // Track successful download in Supabase (optional)
-      try {
-        await supabase
-          .from('purchases')
-          .update({ download_count: (purchaseData.download_count || 0) + 1 })
-          .eq('download_token', purchaseData.download_token);
-      } catch (trackingError) {
-        // Non-critical error, just log it
-        console.warn("Could not update download count:", trackingError);
-      }
+      // Removing the download count tracking since that field doesn't exist
       
     } catch (error) {
       console.error("Download error:", error);
