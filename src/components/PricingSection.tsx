@@ -181,7 +181,7 @@ const PricingSection = () => {
 
               <div className="flex items-end justify-center gap-2 mb-6">
                 <span className="text-5xl font-bold">
-                  ₹180
+                  ₹199
                 </span>
                 <span className="text-muted-foreground mb-1">
                   only

@@ -4,7 +4,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
 const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
-const AMOUNT = 18000; // Amount in paise (₹180)
+const AMOUNT = 19900; // Amount in paise (₹199)
 const CURRENCY = "INR";
 
 serve(async (req) => {

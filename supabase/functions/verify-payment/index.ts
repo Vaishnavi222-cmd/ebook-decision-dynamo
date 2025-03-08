@@ -49,7 +49,7 @@ serve(async (req) => {
       .from('purchases')
       .insert([
         { 
-          amount: 180, // Amount in rupees
+          amount: 199, // Amount in rupees (Updated from 180 to 199)
           payment_id: razorpay_payment_id,
           payment_status: 'completed',
           // Set token expiration to 5 minutes from now
