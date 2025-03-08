@@ -42,10 +42,10 @@ const Footer = () => {
               Contact Section
             </a>
             <Link
-              to="/contact"
+              to="/contact-us"
               className="text-sm text-foreground/80 hover:text-foreground transition-colors"
             >
-              Contact Page
+              Contact Us
             </Link>
             <Link
               to="/disclaimer"

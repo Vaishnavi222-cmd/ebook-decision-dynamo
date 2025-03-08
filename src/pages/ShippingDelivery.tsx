@@ -112,7 +112,7 @@ const ShippingDelivery = () => {
               <h3 className="font-semibold text-lg mb-2">Having Trouble?</h3>
               <p className="text-gray-700">
                 If you encounter any issues with downloading your ebook after purchase, please 
-                contact our <Link to="/contact" className="text-primary hover:underline">customer support team</Link> immediately.
+                contact our <Link to="/contact-us" className="text-primary hover:underline">customer support team</Link> immediately.
                 Remember, your download link is only valid for 24 hours after purchase.
               </p>
             </div>
