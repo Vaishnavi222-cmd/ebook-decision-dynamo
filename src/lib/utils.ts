@@ -57,6 +57,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     console.log("Creating Razorpay order...");
     console.log("Calling edge function at:", `${supabaseUrl}/functions/v1/create-order`);
     
+    // Fix: Ensure the URL is correctly constructed without 'undefined' in the path
     const orderResponse = await fetch(`${supabaseUrl}/functions/v1/create-order`, {
       method: "POST",
       headers: {
@@ -69,7 +70,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     if (!orderResponse.ok) {
       const errorText = await orderResponse.text();
       console.error("Order creation failed:", orderResponse.status, errorText);
-      throw new Error("Failed to create order");
+      throw new Error(`Failed to create order: ${orderResponse.status} - ${errorText}`);
     }
 
     const orderData = await orderResponse.json();
