@@ -97,9 +97,7 @@ const PricingSection = () => {
                 Buy Now
               </Button>
 
-              <div className="mt-4 text-sm text-muted-foreground">
-                100% satisfaction guaranteed or your money back
-              </div>
+              {/* Removed the satisfaction guarantee text */}
             </div>
 
             <div className="border-t p-8">
