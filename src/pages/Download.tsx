@@ -100,18 +100,38 @@ const Download = () => {
     if (!purchaseData) return;
     
     try {
-      // Create a signed URL for download
+      console.log("Starting download process...");
+      
+      // First, check if the file exists in the bucket
+      const { data: fileData, error: fileError } = await supabase.storage
+        .from('ebook_storage')
+        .list();
+        
+      if (fileError) {
+        console.error("Error listing bucket contents:", fileError);
+        throw fileError;
+      }
+      
+      console.log("Files in bucket:", fileData);
+      
+      // Create a signed URL for download with explicit file path
       const { data, error } = await supabase.storage
         .from('ebook_storage')
         .createSignedUrl('ebook_decision_dynamo.pdf', 300, { 
           download: true 
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating signed URL:", error);
+        throw error;
+      }
       
       if (!data?.signedUrl) {
+        console.error("No signed URL returned");
         throw new Error("Could not generate download URL");
       }
+      
+      console.log("Generated signed URL:", data.signedUrl);
       
       // Open the download in a new tab
       window.open(data.signedUrl, '_blank');
@@ -124,7 +144,7 @@ const Download = () => {
       console.error("Download error:", error);
       toast({
         title: "Download failed",
-        description: "There was an error downloading your eBook. Please try again.",
+        description: "There was an error downloading your eBook. Please contact support.",
         variant: "destructive",
       });
     }
