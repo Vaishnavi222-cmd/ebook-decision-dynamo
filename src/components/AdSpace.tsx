@@ -16,8 +16,8 @@ const AdSpace: React.FC<AdSpaceProps> = ({
   const adRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only inject the ad script for the header position
-    if (position === "header" && adRef.current) {
+    // Only inject the ad script for the header and top positions
+    if ((position === "header" || position === "top") && adRef.current) {
       // Clear any previous content
       if (adRef.current.childNodes.length > 0) {
         adRef.current.innerHTML = '';
@@ -26,24 +26,41 @@ const AdSpace: React.FC<AdSpaceProps> = ({
       // Create and inject the script element
       const scriptEl = document.createElement("script");
       scriptEl.setAttribute('data-ad-script', 'true');
-      // Use corrected script format to ensure proper rendering
-      scriptEl.innerHTML = `
-        (function(xhptg){
-          var d = document,
-              s = d.createElement('script'),
-              l = d.scripts[d.scripts.length - 1];
-          s.settings = xhptg || {};
-          s.src = "//villainous-appointment.com/b/X.VpsqdKGblw0/YNW/dwiAYNWQ5_uuZdXuIB/NeGmo9BulZhUTlHkbP/TnYUxUNlTzU/wSOxTgg/tFNyjOEb1SNUTLA/5dO/QZ";
-          s.async = true;
-          s.referrerPolicy = 'no-referrer-when-downgrade';
-          l.parentNode.insertBefore(s, l);
-        })({})
-      `;
+      
+      // Use different script based on position
+      if (position === "header") {
+        scriptEl.innerHTML = `
+          (function(xhptg){
+            var d = document,
+                s = d.createElement('script'),
+                l = d.scripts[d.scripts.length - 1];
+            s.settings = xhptg || {};
+            s.src = "//villainous-appointment.com/b/X.VpsqdKGblw0/YNW/dwiAYNWQ5_uuZdXuIB/NeGmo9BulZhUTlHkbP/TnYUxUNlTzU/wSOxTgg/tFNyjOEb1SNUTLA/5dO/QZ";
+            s.async = true;
+            s.referrerPolicy = 'no-referrer-when-downgrade';
+            l.parentNode.insertBefore(s, l);
+          })({})
+        `;
+      } else if (position === "top") {
+        scriptEl.innerHTML = `
+          (function(nkb){
+            var d = document,
+                s = d.createElement('script'),
+                l = d.scripts[d.scripts.length - 1];
+            s.settings = nkb || {};
+            s.src = "//villainous-appointment.com/bJXAV.s-diGXl-0lYjWYd/ikY/WV5YunZYX/Ix/PeZmv9HuJZZUtlWkGPMTDYjxqNvThUmx/OmDoIitUNxjDET1FNXTjEi4/Mzwg";
+            s.async = true;
+            s.referrerPolicy = 'no-referrer-when-downgrade';
+            l.parentNode.insertBefore(s, l);
+          })({})
+        `;
+      }
+      
       adRef.current.appendChild(scriptEl);
 
       // Create and append an iframe to ensure ad visibility
       const adFrame = document.createElement('iframe');
-      adFrame.id = 'ad-frame';
+      adFrame.id = position === "header" ? 'header-ad-frame' : 'top-ad-frame';
       adFrame.style.width = '100%';
       adFrame.style.height = '60px';
       adFrame.style.border = 'none';
@@ -74,7 +91,8 @@ const AdSpace: React.FC<AdSpaceProps> = ({
       return () => {
         const scripts = adRef.current?.querySelectorAll('[data-ad-script="true"]');
         scripts?.forEach(script => script.remove());
-        const frame = document.getElementById('ad-frame');
+        const frameId = position === "header" ? 'header-ad-frame' : 'top-ad-frame';
+        const frame = document.getElementById(frameId);
         if (frame && frame.parentNode) {
           frame.parentNode.removeChild(frame);
         }
@@ -102,7 +120,7 @@ const AdSpace: React.FC<AdSpaceProps> = ({
             className={cn(
               "min-h-[60px] sm:min-h-[90px] flex items-center justify-center relative",
               {
-                "ad-container": position === "header"
+                "ad-container": position === "header" || position === "top"
               }
             )}
             style={{
@@ -111,7 +129,7 @@ const AdSpace: React.FC<AdSpaceProps> = ({
               zIndex: 5
             }}
           >
-            {position !== "header" && (
+            {position !== "header" && position !== "top" && (
               <span className="text-muted-foreground/50">Ad content will appear here</span>
             )}
           </div>
