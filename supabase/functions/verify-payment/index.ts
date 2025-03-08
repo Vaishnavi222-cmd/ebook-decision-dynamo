@@ -9,15 +9,41 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 serve(async (req) => {
+  console.log("verify-payment function called");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = await req.json();
+    if (!RAZORPAY_KEY_SECRET) {
+      console.error("Missing Razorpay Key Secret");
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase credentials");
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    const requestData = await req.json();
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = requestData;
+    
+    console.log("Payment verification request received", { 
+      payment_id: razorpay_payment_id,
+      order_id: razorpay_order_id,
+      has_signature: !!razorpay_signature
+    });
     
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      console.error("Missing payment details", requestData);
       return new Response(JSON.stringify({ error: "Missing payment details" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
@@ -35,44 +61,68 @@ serve(async (req) => {
     const isSignatureValid = generatedSignature === razorpay_signature;
     
     if (!isSignatureValid) {
+      console.error("Invalid payment signature", {
+        provided: razorpay_signature,
+        calculated: generatedSignature.substring(0, 10) + "..." // Log partial signature for debugging
+      });
       return new Response(JSON.stringify({ error: "Invalid payment signature" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
     }
 
+    console.log("Payment signature verification successful");
+
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Create a new purchase record with download token
-    const { data, error } = await supabase
-      .from('purchases')
-      .insert([
-        { 
-          amount: 199, // Amount in rupees (Updated from 180 to 199)
-          payment_id: razorpay_payment_id,
-          payment_status: 'completed',
-          // Set token expiration to 5 minutes from now
-          token_expires_at: new Date(new Date().getTime() + 5 * 60 * 1000).toISOString()
-        }
-      ])
-      .select()
-      .single();
-    
-    if (error) {
-      throw error;
+    try {
+      // Create a new purchase record with download token
+      const { data, error } = await supabase
+        .from('purchases')
+        .insert([
+          { 
+            amount: 199, // Amount in rupees
+            payment_id: razorpay_payment_id,
+            payment_status: 'completed',
+            // Set token expiration to 5 minutes from now
+            token_expires_at: new Date(new Date().getTime() + 5 * 60 * 1000).toISOString()
+          }
+        ])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Supabase database error:", error.message, error.details);
+        throw error;
+      }
+      
+      console.log("Purchase record created successfully. Token:", data.download_token);
+      
+      return new Response(JSON.stringify({ 
+        success: true,
+        download_token: data.download_token
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    } catch (dbError) {
+      console.error("Database error:", dbError.message, dbError.details);
+      return new Response(JSON.stringify({ 
+        error: "Database error",
+        message: dbError.message
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
     }
-    
-    return new Response(JSON.stringify({ 
-      success: true,
-      download_token: data.download_token
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
   } catch (error) {
-    console.error("Error verifying payment:", error);
-    return new Response(JSON.stringify({ error: "Failed to verify payment" }), {
+    console.error("Error verifying payment:", error.message, error.stack);
+    return new Response(JSON.stringify({ 
+      error: "Failed to verify payment",
+      message: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
