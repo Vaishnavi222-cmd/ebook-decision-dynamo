@@ -1,61 +1,28 @@
-import React, { useEffect, useRef, useState } from "react";
+
+import React, { useEffect, useRef } from "react";
 import Container from "./ui/container";
 import { Button } from "@/components/ui/button";
 import { Check, CreditCard } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { loadScript } from "@/lib/utils";
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 const PricingSection = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handlePurchase = async () => {
-    try {
-      // Create a temporary purchase record
-      const { data, error } = await supabase
-        .from('purchases')
-        .insert([
-          { 
-            amount: 180, 
-            payment_status: 'completed', // Changed from 'pending' to 'completed' for testing
-            // Set token expiration to 5 minutes from now
-            token_expires_at: new Date(new Date().getTime() + 5 * 60 * 1000).toISOString()
-          }
-        ])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Purchase successful",
-        description: "Your payment was successful. Redirecting to download page...",
-      });
-      
-      // Here you would normally integrate with Razorpay
-      // For now, we'll simulate a successful payment and redirect to download page
-      
-      // Navigate to download page with token
-      setTimeout(() => {
-        navigate(`/download?token=${data.download_token}`);
-      }, 1500);
-      
-      // NOTE: In production, remove the setTimeout and redirect only after
-      // Razorpay confirms the payment was successful
-    } catch (error) {
-      console.error("Purchase error:", error);
-      toast({
-        title: "Error",
-        description: "There was an error processing your purchase. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   useEffect(() => {
+    // Load Razorpay script when component mounts
+    loadScript("https://checkout.razorpay.com/v1/checkout.js");
+
+    // Set up animation observers
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -84,6 +51,105 @@ const PricingSection = () => {
       }
     };
   }, []);
+
+  const handlePurchase = async () => {
+    try {
+      // Show loading toast
+      toast({
+        title: "Initializing payment...",
+        description: "Please wait while we prepare your order.",
+      });
+
+      // Create order in Razorpay via edge function
+      const orderResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!orderResponse.ok) {
+        throw new Error("Failed to create order");
+      }
+
+      const orderData = await orderResponse.json();
+
+      // Initialize Razorpay checkout
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Decision Dynamo",
+        description: "Premium eBook Purchase",
+        order_id: orderData.id,
+        handler: async function (response: any) {
+          try {
+            // Verify payment with edge function
+            const verifyResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payment`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            if (!verifyResponse.ok) {
+              throw new Error("Payment verification failed");
+            }
+
+            const verificationData = await verifyResponse.json();
+
+            toast({
+              title: "Purchase successful!",
+              description: "Your payment was successful. Redirecting to download page...",
+            });
+
+            // Navigate to download page with token
+            setTimeout(() => {
+              navigate(`/download?token=${verificationData.download_token}`);
+            }, 1500);
+          } catch (error) {
+            console.error("Verification error:", error);
+            toast({
+              title: "Verification failed",
+              description: "We couldn't verify your payment. Please contact support.",
+              variant: "destructive",
+            });
+          }
+        },
+        prefill: {
+          name: "",
+          email: "",
+          contact: "",
+        },
+        theme: {
+          color: "#4F46E5",
+        },
+        modal: {
+          ondismiss: function() {
+            toast({
+              title: "Payment cancelled",
+              description: "You cancelled the payment process. You can try again whenever you're ready.",
+            });
+          },
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error("Purchase error:", error);
+      toast({
+        title: "Error",
+        description: "There was an error processing your purchase. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <section id="pricing" className="py-20" ref={sectionRef}>

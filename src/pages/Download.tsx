@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,18 +100,11 @@ const Download = () => {
     if (!purchaseData) return;
     
     try {
-      // Get the token to pass as a query parameter
-      const params = new URLSearchParams(location.search);
-      const token = params.get("token");
-      
-      // Create a signed URL with the token
+      // Create a signed URL for download
       const { data, error } = await supabase.storage
         .from('ebook_storage')
         .createSignedUrl('ebook_decision_dynamo.pdf', 300, { 
-          download: true,
-          transform: { 
-            quality: 100 
-          }
+          download: true 
         });
         
       if (error) throw error;

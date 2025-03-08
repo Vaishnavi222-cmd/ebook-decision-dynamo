@@ -14,7 +14,6 @@ export type Database = {
           amount: number
           created_at: string | null
           download_token: string | null
-          email: string | null
           id: string
           payment_id: string | null
           payment_status: string | null
@@ -25,7 +24,6 @@ export type Database = {
           amount: number
           created_at?: string | null
           download_token?: string | null
-          email?: string | null
           id?: string
           payment_id?: string | null
           payment_status?: string | null
@@ -36,7 +34,6 @@ export type Database = {
           amount?: number
           created_at?: string | null
           download_token?: string | null
-          email?: string | null
           id?: string
           payment_id?: string | null
           payment_status?: string | null
