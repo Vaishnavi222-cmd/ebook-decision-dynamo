@@ -85,11 +85,18 @@ serve(async (req) => {
     
     if (!response.ok) {
       let errorData;
-      try {
-        errorData = await response.json();
-      } catch (e) {
+      // Improved error handling for different response types
+      const contentType = response.headers.get("Content-Type");
+      if (contentType?.includes("application/json")) {
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          const errorText = await response.text();
+          errorData = { raw: errorText, parse_error: e.message };
+        }
+      } else {
         const errorText = await response.text();
-        errorData = { raw: errorText };
+        errorData = { raw: errorText, content_type: contentType };
       }
       
       console.error("Razorpay API error:", response.status, JSON.stringify(errorData));
