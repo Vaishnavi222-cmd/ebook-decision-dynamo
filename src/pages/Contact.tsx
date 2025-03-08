@@ -4,6 +4,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
 import Container from "@/components/ui/container";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Contact = () => {
   return (
@@ -12,6 +15,14 @@ const Contact = () => {
       <main className="flex-grow pt-24 pb-16">
         <Container>
           <div className="max-w-3xl mx-auto">
+            <div className="mb-6">
+              <Link to="/">
+                <Button variant="ghost" className="group pl-0 text-foreground/70 hover:text-foreground">
+                  <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                  Back to Home
+                </Button>
+              </Link>
+            </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-6 text-center">
               Contact Us
             </h1>

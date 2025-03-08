@@ -3,6 +3,9 @@ import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Container from "@/components/ui/container";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Privacy = () => {
   return (
@@ -10,6 +13,14 @@ const Privacy = () => {
       <Navbar />
       <main className="py-20">
         <Container className="max-w-4xl">
+          <div className="mb-6">
+            <Link to="/">
+              <Button variant="ghost" className="group pl-0 text-foreground/70 hover:text-foreground">
+                <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                Back to Home
+              </Button>
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
           <div className="prose prose-slate max-w-none">
             <p className="mb-4">
