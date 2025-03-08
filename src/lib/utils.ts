@@ -62,10 +62,12 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     
     // Create order in Razorpay via edge function
     console.log("Creating Razorpay order...");
-    console.log("Calling edge function at:", `${supabaseUrl}/functions/v1/create-order`);
     
-    // Fix: Ensure the URL is correctly constructed without 'undefined' in the path
-    const orderResponse = await fetch(`${supabaseUrl}/functions/v1/create-order`, {
+    // Ensure URL is correctly formatted without 'undefined' or double slashes
+    const createOrderUrl = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/create-order`;
+    console.log("Calling edge function at:", createOrderUrl);
+    
+    const orderResponse = await fetch(createOrderUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -94,8 +96,12 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       handler: async function (response: any) {
         try {
           console.log("Payment successful, verifying payment...");
+          // Construct verification URL properly
+          const verifyUrl = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/verify-payment`;
+          console.log("Calling verification function at:", verifyUrl);
+          
           // Verify payment with edge function
-          const verifyResponse = await fetch(`${supabaseUrl}/functions/v1/verify-payment`, {
+          const verifyResponse = await fetch(verifyUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
