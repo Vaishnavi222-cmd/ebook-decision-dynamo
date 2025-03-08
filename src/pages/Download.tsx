@@ -101,20 +101,30 @@ const Download = () => {
     if (!purchaseData) return;
     
     try {
+      // Get the token to pass as a query parameter
+      const params = new URLSearchParams(location.search);
+      const token = params.get("token");
+      
+      // Create a signed URL with the token
       const { data, error } = await supabase.storage
         .from('ebook_storage')
-        .download('ebook_decision_dynamo.pdf');
+        .createSignedUrl('ebook_decision_dynamo.pdf', 300, { 
+          download: true,
+          transform: { 
+            quality: 100 
+          },
+          // Pass the token as a query parameter
+          queryParams: { token }
+        });
         
       if (error) throw error;
       
-      // Create a download link
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'The_Art_of_Smart_Decisions.pdf';
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
+      if (!data?.signedUrl) {
+        throw new Error("Could not generate download URL");
+      }
+      
+      // Open the download in a new tab
+      window.open(data.signedUrl, '_blank');
       
       toast({
         title: "Download started",

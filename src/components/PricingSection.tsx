@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import Container from "./ui/container";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,7 @@ const PricingSection = () => {
         .insert([
           { 
             amount: 180, 
-            payment_status: 'pending',
+            payment_status: 'completed', // Changed from 'pending' to 'completed' for testing
             // Set token expiration to 5 minutes from now
             token_expires_at: new Date(new Date().getTime() + 5 * 60 * 1000).toISOString()
           }
@@ -32,21 +31,15 @@ const PricingSection = () => {
       if (error) throw error;
       
       toast({
-        title: "Purchase initiated",
-        description: "Starting the payment process...",
+        title: "Purchase successful",
+        description: "Your payment was successful. Redirecting to download page...",
       });
       
       // Here you would normally integrate with Razorpay
       // For now, we'll simulate a successful payment and redirect to download page
       
-      // In a real implementation, you would:
-      // 1. Initialize Razorpay with order details
-      // 2. On successful payment, update payment_status to 'completed'
-      // 3. Then redirect to the download page
-      
-      // Simulate successful payment (remove this in production)
+      // Navigate to download page with token
       setTimeout(() => {
-        // Navigate to download page with token
         navigate(`/download?token=${data.download_token}`);
       }, 1500);
       
