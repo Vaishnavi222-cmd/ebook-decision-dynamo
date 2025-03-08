@@ -112,9 +112,7 @@ const Download = () => {
           download: true,
           transform: { 
             quality: 100 
-          },
-          // Pass the token as a query parameter
-          queryParams: { token }
+          }
         });
         
       if (error) throw error;
