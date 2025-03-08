@@ -43,7 +43,7 @@ serve(async (req) => {
       purchase_id: purchase_id
     });
     
-    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !purchase_id) {
       console.error("Missing payment details", requestData);
       return new Response(JSON.stringify({ error: "Missing payment details" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -78,12 +78,45 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     try {
+      // Get the purchase record first to check if it exists
+      const { data: purchaseRecord, error: fetchError } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', purchase_id)
+        .maybeSingle();
+      
+      if (fetchError) {
+        console.error("Error fetching purchase record:", fetchError.message);
+        throw fetchError;
+      }
+      
+      if (!purchaseRecord) {
+        console.error("Purchase record not found for ID:", purchase_id);
+        return new Response(JSON.stringify({ error: "Purchase record not found" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404,
+        });
+      }
+      
+      // Verify that the order ID matches
+      if (purchaseRecord.razorpay_order_id && purchaseRecord.razorpay_order_id !== razorpay_order_id) {
+        console.error("Order ID mismatch", {
+          stored: purchaseRecord.razorpay_order_id,
+          received: razorpay_order_id
+        });
+        return new Response(JSON.stringify({ error: "Order ID verification failed" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+      
       // Update the existing purchase record with payment details and generate download token
       const { data, error } = await supabase
         .from('purchases')
         .update({ 
           payment_id: razorpay_payment_id,
           payment_status: 'completed',
+          razorpay_order_id: razorpay_order_id, // Ensure order ID is stored if it wasn't before
           // Set token expiration to 5 minutes from now
           token_expires_at: new Date(new Date().getTime() + 5 * 60 * 1000).toISOString()
         })

@@ -66,7 +66,6 @@ serve(async (req) => {
     console.log("Order request payload:", JSON.stringify(orderData));
     
     // Fix: Correctly format the authorization header
-    // Format: "Basic " + btoa(RAZORPAY_KEY_ID + ":" + RAZORPAY_KEY_SECRET)
     const authHeader = "Basic " + btoa(RAZORPAY_KEY_ID + ":" + RAZORPAY_KEY_SECRET);
     console.log("Authorization header format (first 10 chars):", authHeader.substring(0, 10) + "...");
     
@@ -78,7 +77,6 @@ serve(async (req) => {
         "Authorization": authHeader,
       },
       body: JSON.stringify(orderData),
-      // Add mode: "cors" for proper CORS handling
       mode: "cors",
     });
 
@@ -86,11 +84,11 @@ serve(async (req) => {
     console.log("Razorpay API response status:", response.status);
     
     if (!response.ok) {
-      const errorText = await response.text();
       let errorData;
       try {
-        errorData = JSON.parse(errorText);
-      } catch {
+        errorData = await response.json();
+      } catch (e) {
+        const errorText = await response.text();
         errorData = { raw: errorText };
       }
       
@@ -130,11 +128,12 @@ serve(async (req) => {
       .from("purchases")
       .insert([
         {
-          payment_id: null, // Will be updated after payment completion
+          payment_id: null,
           amount: order.amount / 100, // Convert from paise to rupees
           payment_status: "created",
-          download_token: null, // Will be generated after successful payment
-          token_expires_at: null // Will be set after successful payment
+          download_token: null,
+          token_expires_at: null,
+          razorpay_order_id: order.id // Store the Razorpay order ID
         }
       ])
       .select()

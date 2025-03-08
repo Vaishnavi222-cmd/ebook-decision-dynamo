@@ -87,9 +87,16 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     console.log("Order response status:", orderResponse.status);
     
     if (!orderResponse.ok) {
-      const errorText = await orderResponse.text();
-      console.error("Order creation failed:", orderResponse.status, errorText);
-      throw new Error(`Failed to create order: ${orderResponse.status} - ${errorText}`);
+      let errorData;
+      try {
+        errorData = await orderResponse.json();
+      } catch (e) {
+        const errorText = await orderResponse.text();
+        errorData = { raw: errorText };
+      }
+      
+      console.error("Order creation failed:", orderResponse.status, errorData);
+      throw new Error(`Failed to create order: ${orderResponse.status} - ${JSON.stringify(errorData)}`);
     }
 
     const orderData = await orderResponse.json();
@@ -142,9 +149,16 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
           console.log("Verification response status:", verifyResponse.status);
           
           if (!verifyResponse.ok) {
-            const errorText = await verifyResponse.text();
-            console.error("Payment verification failed:", verifyResponse.status, errorText);
-            throw new Error("Payment verification failed");
+            let errorData;
+            try {
+              errorData = await verifyResponse.json();
+            } catch (e) {
+              const errorText = await verifyResponse.text();
+              errorData = { raw: errorText };
+            }
+            
+            console.error("Payment verification failed:", verifyResponse.status, errorData);
+            throw new Error(`Payment verification failed: ${JSON.stringify(errorData)}`);
           }
 
           const verificationData = await verifyResponse.json();
