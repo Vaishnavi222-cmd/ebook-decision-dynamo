@@ -101,37 +101,14 @@ const Download = () => {
     if (!purchaseData) return;
     
     try {
-      console.log("Starting download process...");
-      
-      // First, check if the file exists in the bucket
-      const { data: fileData, error: fileError } = await supabase.storage
-        .from('ebook_storage')
-        .list();
-        
-      if (fileError) {
-        console.error("Error listing bucket contents:", fileError);
-        throw fileError;
-      }
-      
-      console.log("Files in bucket:", fileData);
-      
-      // Check if the bucket has proper permissions
-      try {
-        const { data: publicUrlData } = await supabase.storage
-          .from('ebook_storage')
-          .getPublicUrl('ebook_decision_dynamo.pdf');
-          
-        console.log("Public URL check:", publicUrlData);
-      } catch (publicUrlError) {
-        console.warn("Public URL check failed:", publicUrlError);
-        // Continue anyway - this is just a diagnostic step
-      }
-      
-      // Create a signed URL for download with explicit file path
+      console.log("Starting download process for eBook...");
+
+      // Generate a signed URL with a longer expiration (15 minutes)
       const { data, error } = await supabase.storage
         .from('ebook_storage')
-        .createSignedUrl('ebook_decision_dynamo.pdf', 600, { 
-          download: true 
+        .createSignedUrl('ebook_decision_dynamo.pdf', 900, { 
+          download: true,
+          transform: { quality: 100 }  // Ensure full quality
         });
         
       if (error) {
@@ -140,11 +117,11 @@ const Download = () => {
       }
       
       if (!data?.signedUrl) {
-        console.error("No signed URL returned");
+        console.error("No signed URL returned from Supabase");
         throw new Error("Could not generate download URL");
       }
       
-      console.log("Generated signed URL:", data.signedUrl);
+      console.log("Successfully generated signed URL");
       
       // Open the download in a new tab
       window.open(data.signedUrl, '_blank');
@@ -153,33 +130,24 @@ const Download = () => {
         title: "Download started",
         description: "Your eBook download has started!",
       });
+      
+      // Track successful download in Supabase (optional)
+      try {
+        await supabase
+          .from('purchases')
+          .update({ download_count: (purchaseData.download_count || 0) + 1 })
+          .eq('download_token', purchaseData.download_token);
+      } catch (trackingError) {
+        // Non-critical error, just log it
+        console.warn("Could not update download count:", trackingError);
+      }
+      
     } catch (error) {
       console.error("Download error:", error);
       
-      // Attempt to access the file directly as a fallback
-      try {
-        console.log("Attempting fallback download method...");
-        const { data: publicUrlData } = await supabase.storage
-          .from('ebook_storage')
-          .getPublicUrl('ebook_decision_dynamo.pdf');
-          
-        if (publicUrlData?.publicUrl) {
-          console.log("Using public URL as fallback:", publicUrlData.publicUrl);
-          window.open(publicUrlData.publicUrl, '_blank');
-          
-          toast({
-            title: "Download started",
-            description: "Your eBook download has started using an alternative method!",
-          });
-          return;
-        }
-      } catch (fallbackError) {
-        console.error("Fallback download method failed:", fallbackError);
-      }
-      
       toast({
         title: "Download failed",
-        description: "There was an error downloading your eBook. Please contact support and mention 'storage permissions issue'.",
+        description: "There was an error downloading your eBook. Please try again or contact support.",
         variant: "destructive",
       });
     }
