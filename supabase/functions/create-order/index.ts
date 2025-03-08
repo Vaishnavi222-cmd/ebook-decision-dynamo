@@ -14,6 +14,10 @@ serve(async (req) => {
   console.log("-----------------------------------");
   console.log("create-order function called with method:", req.method);
   
+  // Log API keys for debugging (remove in production)
+  console.log("Razorpay Key ID:", RAZORPAY_KEY_ID ? "Loaded" : "MISSING");
+  console.log("Razorpay Key Secret:", RAZORPAY_KEY_SECRET ? "Loaded" : "MISSING");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     console.log("Handling OPTIONS request - responding with CORS headers");
@@ -65,8 +69,12 @@ serve(async (req) => {
     
     console.log("Order request payload:", JSON.stringify(orderData));
     
-    // Fix: Correctly format the authorization header
-    const authHeader = "Basic " + btoa(RAZORPAY_KEY_ID + ":" + RAZORPAY_KEY_SECRET);
+    // Fix: Correctly format the authorization header using btoa()
+    // btoa is not available in Deno, we need to encode manually
+    const credentials = `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`;
+    const encodedCredentials = btoa(credentials);
+    const authHeader = `Basic ${encodedCredentials}`;
+    
     console.log("Authorization header format (first 10 chars):", authHeader.substring(0, 10) + "...");
     
     // Create order in Razorpay with proper headers and mode
@@ -197,3 +205,17 @@ serve(async (req) => {
     });
   }
 });
+
+// Helper function to implement btoa() for Base64 encoding in Deno
+function btoa(input: string): string {
+  const bytes = new TextEncoder().encode(input);
+  return bytesToBase64(bytes);
+}
+
+// Convert bytes to Base64
+function bytesToBase64(bytes: Uint8Array): string {
+  const binString = Array.from(bytes)
+    .map(byte => String.fromCharCode(byte))
+    .join('');
+  return btoa(binString);
+}
