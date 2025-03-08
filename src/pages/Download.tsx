@@ -101,13 +101,39 @@ const Download = () => {
     
     try {
       console.log("Starting download process for eBook...");
-
+      
+      // First, check if the file exists
+      const { data: fileExistsData, error: fileExistsError } = await supabase
+        .storage
+        .from('ebook_storage')
+        .list('', {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: 'name', order: 'asc' },
+        });
+        
+      if (fileExistsError) {
+        console.error("Error checking files in bucket:", fileExistsError);
+        throw new Error("Could not verify if file exists");
+      }
+      
+      console.log("Files in bucket:", fileExistsData);
+      
+      // Check if our file exists in the bucket
+      const fileExists = fileExistsData?.some(file => 
+        file.name === 'ebook_decision_dynamo.pdf'
+      );
+      
+      if (!fileExists) {
+        console.error("File 'ebook_decision_dynamo.pdf' not found in bucket");
+        throw new Error("The eBook file could not be found. Please contact support.");
+      }
+      
       // Generate a signed URL with a longer expiration (15 minutes)
       const { data, error } = await supabase.storage
         .from('ebook_storage')
         .createSignedUrl('ebook_decision_dynamo.pdf', 900, { 
           download: true,
-          transform: { quality: 100 }  // Ensure full quality
         });
         
       if (error) {
@@ -130,7 +156,6 @@ const Download = () => {
         description: "Your eBook download has started!",
       });
       
-      // Track successful download in Supabase (optional)
       // Removing the download count tracking since that field doesn't exist
       
     } catch (error) {
@@ -138,7 +163,9 @@ const Download = () => {
       
       toast({
         title: "Download failed",
-        description: "There was an error downloading your eBook. Please try again or contact support.",
+        description: error instanceof Error 
+          ? error.message 
+          : "There was an error downloading your eBook. Please try again or contact support.",
         variant: "destructive",
       });
     }
