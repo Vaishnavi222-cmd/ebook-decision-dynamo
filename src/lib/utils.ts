@@ -1,6 +1,7 @@
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { supabase } from "@/integrations/supabase/client";
 
 // Add type declaration for the Razorpay object
 declare global {
@@ -53,24 +54,29 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       throw new Error("Failed to load Razorpay checkout script");
     }
 
-    // Get Supabase URL from environment
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    // Get the Supabase URL directly from the configured client
+    // This ensures we're always using the correct URL that's already configured
+    const supabaseUrl = supabase.supabaseUrl;
+    
+    console.log("Using Supabase URL:", supabaseUrl);
+    
     if (!supabaseUrl) {
-      console.error("VITE_SUPABASE_URL is not defined in environment variables");
+      console.error("Supabase URL is not available");
       throw new Error("Missing configuration: Supabase URL");
     }
     
     // Create order in Razorpay via edge function
     console.log("Creating Razorpay order...");
     
-    // Ensure URL is correctly formatted without 'undefined' or double slashes
-    const createOrderUrl = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/create-order`;
+    // Ensure URL is correctly formatted without double slashes
+    const createOrderUrl = `${supabaseUrl}/functions/v1/create-order`;
     console.log("Calling edge function at:", createOrderUrl);
     
     const orderResponse = await fetch(createOrderUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabase.auth.getSession()}`
       },
     });
 
@@ -97,7 +103,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
         try {
           console.log("Payment successful, verifying payment...");
           // Construct verification URL properly
-          const verifyUrl = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/verify-payment`;
+          const verifyUrl = `${supabaseUrl}/functions/v1/verify-payment`;
           console.log("Calling verification function at:", verifyUrl);
           
           // Verify payment with edge function
@@ -105,6 +111,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabase.auth.getSession()}`
             },
             body: JSON.stringify({
               razorpay_payment_id: response.razorpay_payment_id,
