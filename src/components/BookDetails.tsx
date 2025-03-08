@@ -85,8 +85,8 @@ const BookDetails = () => {
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden p-6">
               <div className="aspect-[3/4] relative">
                 <img
-                  src="/lovable-uploads/2d5d4bda-b97c-4e64-a427-53e3ef0cf438.png"
-                  alt="The Art of Smart Decisions Book Cover"
+                  src="https://images.unsplash.com/photo-1553484771-047a44eee27a?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80"
+                  alt="Inside the Decision Dynamo eBook"
                   className="object-cover rounded-lg shadow-md"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6">
