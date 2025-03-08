@@ -1,10 +1,11 @@
+
 import React, { useEffect, useRef } from "react";
 import Container from "./ui/container";
 import { Button } from "@/components/ui/button";
 import { Check, CreditCard } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import { initializeRazorpayPayment } from "@/lib/utils";
+import { initializeRazorpayPayment, loadScript } from "@/lib/utils";
 
 const PricingSection = () => {
   const sectionRef = useRef<HTMLDivElement>(null);

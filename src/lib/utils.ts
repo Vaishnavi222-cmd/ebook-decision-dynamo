@@ -2,6 +2,13 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+// Add type declaration for the Razorpay object
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
