@@ -67,11 +67,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     // Create order in Razorpay via edge function
     console.log("Creating Razorpay order...");
     
-    // Get the current session token for authentication
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token || '';
-    console.log("Access token available:", !!accessToken);
-    
+    // No authentication needed for the edge function call
     // Ensure URL is correctly formatted without double slashes
     const createOrderUrl = `${supabaseUrl}/functions/v1/create-order`;
     console.log("Calling edge function at:", createOrderUrl);
@@ -80,7 +76,6 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`
       },
     });
 
@@ -123,20 +118,16 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       handler: async function (response: any) {
         try {
           console.log("Payment successful, verifying payment...");
-          // Get a fresh session token for verification
-          const { data: verifySessionData } = await supabase.auth.getSession();
-          const verifyAccessToken = verifySessionData.session?.access_token || '';
           
           // Construct verification URL properly
           const verifyUrl = `${supabaseUrl}/functions/v1/verify-payment`;
           console.log("Calling verification function at:", verifyUrl);
           
-          // Verify payment with edge function
+          // Verify payment with edge function - no auth needed
           const verifyResponse = await fetch(verifyUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${verifyAccessToken}`
             },
             body: JSON.stringify({
               razorpay_payment_id: response.razorpay_payment_id,

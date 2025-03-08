@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.31.0";
 import { corsHeaders } from "../_shared/cors.ts";
+import { encodeBase64 } from "../_shared/utils.ts";
 
 const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
 const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
@@ -69,10 +70,9 @@ serve(async (req) => {
     
     console.log("Order request payload:", JSON.stringify(orderData));
     
-    // Fix: Correctly format the authorization header using btoa()
-    // btoa is not available in Deno, we need to encode manually
+    // Use the utility function for Base64 encoding
     const credentials = `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`;
-    const encodedCredentials = btoa(credentials);
+    const encodedCredentials = encodeBase64(credentials);
     const authHeader = `Basic ${encodedCredentials}`;
     
     console.log("Authorization header format (first 10 chars):", authHeader.substring(0, 10) + "...");
@@ -205,17 +205,3 @@ serve(async (req) => {
     });
   }
 });
-
-// Helper function to implement btoa() for Base64 encoding in Deno
-function btoa(input: string): string {
-  const bytes = new TextEncoder().encode(input);
-  return bytesToBase64(bytes);
-}
-
-// Convert bytes to Base64
-function bytesToBase64(bytes: Uint8Array): string {
-  const binString = Array.from(bytes)
-    .map(byte => String.fromCharCode(byte))
-    .join('');
-  return btoa(binString);
-}

@@ -119,6 +119,9 @@ serve(async (req) => {
         });
       }
       
+      // Generate a random download token
+      const downloadToken = crypto.randomUUID();
+      
       // Update the existing purchase record with payment details and generate download token
       const { data, error } = await supabase
         .from('purchases')
@@ -126,6 +129,7 @@ serve(async (req) => {
           payment_id: razorpay_payment_id,
           payment_status: 'completed',
           razorpay_order_id: razorpay_order_id, // Ensure order ID is stored if it wasn't before
+          download_token: downloadToken,
           // Set token expiration to 5 minutes from now
           token_expires_at: new Date(new Date().getTime() + 5 * 60 * 1000).toISOString()
         })
