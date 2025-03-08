@@ -20,6 +20,19 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Check for Authorization header
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    console.error("Missing authorization header");
+    return new Response(JSON.stringify({ 
+      error: "Unauthorized", 
+      message: "Missing authorization header" 
+    }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
+
   try {
     console.log("Creating order with Razorpay: amount=" + AMOUNT + ", currency=" + CURRENCY);
     
