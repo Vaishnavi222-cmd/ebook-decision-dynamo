@@ -39,8 +39,14 @@ const Footer = () => {
               href="#contact"
               className="text-sm text-foreground/80 hover:text-foreground transition-colors"
             >
-              Contact
+              Contact Section
             </a>
+            <Link
+              to="/contact"
+              className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+            >
+              Contact Page
+            </Link>
             <Link
               to="/disclaimer"
               className="text-sm text-foreground/80 hover:text-foreground transition-colors"
