@@ -105,11 +105,7 @@ const PricingSection = () => {
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary" />
-                  <span>Complete in-depth knowledge resource (PDF, ePub & Kindle formats)</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Check className="h-5 w-5 text-primary" />
-                  <span>25+ practical worksheets and templates</span>
+                  <span>Complete in-depth knowledge resource</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary" />
@@ -121,7 +117,7 @@ const PricingSection = () => {
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary" />
-                  <span>Lifetime access to all future updates</span>
+                  <span>Lifetime access</span>
                 </li>
               </ul>
             </div>

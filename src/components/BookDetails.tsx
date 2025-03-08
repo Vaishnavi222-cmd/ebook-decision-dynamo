@@ -89,9 +89,7 @@ const BookDetails = () => {
                   alt="Inside the Decision Dynamo eBook"
                   className="object-cover rounded-lg shadow-md"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6">
-                  <div className="text-white text-lg font-medium">Preview the first chapter free</div>
-                </div>
+                {/* Removed the text overlay */}
               </div>
               
               <div className="mt-6 space-y-2">
