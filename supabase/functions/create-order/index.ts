@@ -1,9 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.31.0";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
 const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const AMOUNT = 19900; // Amount in paise (₹199)
 const CURRENCY = "INR";
 
@@ -27,6 +30,21 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         error: "Server configuration error", 
         message: "Razorpay API keys are not configured properly"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    // Check Supabase credentials
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("ERROR: Missing Supabase credentials");
+      console.log("SUPABASE_URL exists:", !!SUPABASE_URL);
+      console.log("SUPABASE_SERVICE_ROLE_KEY exists:", !!SUPABASE_SERVICE_ROLE_KEY);
+      
+      return new Response(JSON.stringify({ 
+        error: "Server configuration error", 
+        message: "Supabase credentials are not configured properly"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
@@ -90,13 +108,60 @@ serve(async (req) => {
 
     const order = await response.json();
     console.log("Order created successfully. Order ID:", order.id);
+
+    // Validate order response - check if it contains an order ID
+    if (!order.id) {
+      console.error("Razorpay did not return an order ID", order);
+      return new Response(JSON.stringify({ 
+        error: "Order creation failed", 
+        message: "Razorpay did not return a valid order ID" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+    
+    // Initialize Supabase client to store the order
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Store order in Supabase purchases table
+    console.log("Storing order in Supabase...");
+    const { data: purchaseData, error: purchaseError } = await supabase
+      .from("purchases")
+      .insert([
+        {
+          payment_id: null, // Will be updated after payment completion
+          amount: order.amount / 100, // Convert from paise to rupees
+          payment_status: "created",
+          download_token: null, // Will be generated after successful payment
+          token_expires_at: null // Will be set after successful payment
+        }
+      ])
+      .select()
+      .single();
+    
+    // Check if there was an error saving to Supabase
+    if (purchaseError) {
+      console.error("Supabase Order Insert Failed:", purchaseError);
+      return new Response(JSON.stringify({ 
+        error: "Order storage failed", 
+        message: purchaseError.message,
+        details: purchaseError
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+    
+    console.log("Order stored in Supabase successfully. Purchase ID:", purchaseData.id);
     
     // Prepare client response
     const clientResponse = {
       id: order.id,
       amount: order.amount,
       currency: order.currency,
-      key: RAZORPAY_KEY_ID
+      key: RAZORPAY_KEY_ID,
+      purchase_id: purchaseData.id
     };
     
     console.log("Sending successful response to client:", JSON.stringify(clientResponse));

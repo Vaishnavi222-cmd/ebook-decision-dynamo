@@ -34,12 +34,13 @@ serve(async (req) => {
     }
 
     const requestData = await req.json();
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = requestData;
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, purchase_id } = requestData;
     
     console.log("Payment verification request received", { 
       payment_id: razorpay_payment_id,
       order_id: razorpay_order_id,
-      has_signature: !!razorpay_signature
+      has_signature: !!razorpay_signature,
+      purchase_id: purchase_id
     });
     
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
@@ -77,18 +78,16 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     try {
-      // Create a new purchase record with download token
+      // Update the existing purchase record with payment details and generate download token
       const { data, error } = await supabase
         .from('purchases')
-        .insert([
-          { 
-            amount: 199, // Amount in rupees
-            payment_id: razorpay_payment_id,
-            payment_status: 'completed',
-            // Set token expiration to 5 minutes from now
-            token_expires_at: new Date(new Date().getTime() + 5 * 60 * 1000).toISOString()
-          }
-        ])
+        .update({ 
+          payment_id: razorpay_payment_id,
+          payment_status: 'completed',
+          // Set token expiration to 5 minutes from now
+          token_expires_at: new Date(new Date().getTime() + 5 * 60 * 1000).toISOString()
+        })
+        .eq('id', purchase_id)
         .select()
         .single();
       
@@ -97,7 +96,7 @@ serve(async (req) => {
         throw error;
       }
       
-      console.log("Purchase record created successfully. Token:", data.download_token);
+      console.log("Purchase record updated successfully. Token:", data.download_token);
       
       return new Response(JSON.stringify({ 
         success: true,

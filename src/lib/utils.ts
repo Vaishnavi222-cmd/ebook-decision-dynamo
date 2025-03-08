@@ -94,6 +94,16 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
 
     const orderData = await orderResponse.json();
     console.log("Order created successfully:", orderData);
+    
+    // Validate order response
+    if (!orderData.id) {
+      console.error("Invalid order data:", orderData);
+      throw new Error("Razorpay did not return a valid order ID");
+    }
+
+    // Store the purchase ID for later use in verification
+    const purchaseId = orderData.purchase_id;
+    console.log("Purchase ID for verification:", purchaseId);
 
     // Initialize Razorpay checkout
     const options = {
@@ -125,6 +135,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
+              purchase_id: purchaseId // Include the purchase ID for verification
             }),
           });
 
