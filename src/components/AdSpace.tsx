@@ -3,7 +3,6 @@ import React, { useEffect, useRef } from "react";
 import Container from "./ui/container";
 import { cn } from "@/lib/utils";
 
-// Updated interface to explicitly include "header" position
 interface AdSpaceProps {
   className?: string;
   position?: "top" | "middle" | "bottom" | "header";
@@ -23,21 +22,36 @@ const AdSpace: React.FC<AdSpaceProps> = ({
         adRef.current.innerHTML = '';
       }
       
-      // Create the iframe first to ensure it's ready for ad content
+      // Create a container div with fixed dimensions for standard ad units
+      const adContainer = document.createElement('div');
+      adContainer.className = 'ad-container';
+      adContainer.style.width = '100%';
+      adContainer.style.height = '100%';
+      adContainer.style.display = 'flex';
+      adContainer.style.alignItems = 'center';
+      adContainer.style.justifyContent = 'center';
+      adContainer.style.overflow = 'hidden';
+      adContainer.style.position = 'relative';
+      adRef.current.appendChild(adContainer);
+      
+      // Create an iframe to isolate the ad content
       const adFrame = document.createElement('iframe');
       adFrame.id = position === "header" ? 'header-ad-frame' : 'top-ad-frame';
-      adFrame.style.width = '100%';
-      adFrame.style.height = '100%'; // Use 100% height to fill container
+      adFrame.style.width = '300px'; // Standard ad width
+      adFrame.style.height = '250px'; // Standard ad height
       adFrame.style.border = 'none';
       adFrame.style.overflow = 'hidden';
+      adFrame.style.maxWidth = '100%';
+      adFrame.style.maxHeight = '100%';
       adFrame.style.display = 'block';
+      adFrame.style.margin = '0 auto'; // Center the ad
       adFrame.setAttribute('allowtransparency', 'true');
       adFrame.setAttribute('frameborder', '0');
       adFrame.setAttribute('scrolling', 'no');
       adFrame.setAttribute('marginheight', '0');
       adFrame.setAttribute('marginwidth', '0');
       
-      adRef.current.appendChild(adFrame);
+      adContainer.appendChild(adFrame);
       
       // Wait for iframe to load before injecting the script
       adFrame.onload = () => {
@@ -49,20 +63,20 @@ const AdSpace: React.FC<AdSpaceProps> = ({
             // Create a full HTML structure in the iframe
             iframeDoc.open();
             iframeDoc.write(`
+              <!DOCTYPE html>
               <html>
                 <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
                   <style>
-                    body {
+                    html, body {
                       margin: 0;
                       padding: 0;
                       width: 100%;
                       height: 100%;
                       overflow: hidden;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
                     }
-                    .ad-container {
+                    .ad-wrapper {
                       width: 100%;
                       height: 100%;
                       display: flex;
@@ -73,18 +87,18 @@ const AdSpace: React.FC<AdSpaceProps> = ({
                   </style>
                 </head>
                 <body>
-                  <div class="ad-container"></div>
+                  <div class="ad-wrapper"></div>
                 </body>
               </html>
             `);
             iframeDoc.close();
             
             // Get the container where we'll inject the ad
-            const adContainer = iframeDoc.querySelector('.ad-container');
+            const adWrapper = iframeDoc.querySelector('.ad-wrapper');
             
-            if (adContainer) {
+            if (adWrapper) {
               // Create and inject the script element into the iframe body
-              const scriptEl = document.createElement("script");
+              const scriptEl = iframeDoc.createElement("script");
               scriptEl.setAttribute('data-ad-script', 'true');
               
               // Use different script based on position
@@ -117,25 +131,23 @@ const AdSpace: React.FC<AdSpaceProps> = ({
               }
               
               // Append the script to the iframe container
-              adContainer.appendChild(scriptEl);
+              adWrapper.appendChild(scriptEl);
               
-              // Also add a fallback visible content in case script doesn't render
-              const fallbackDiv = document.createElement('div');
+              // Add a fallback visible message in case script doesn't render
+              const fallbackDiv = iframeDoc.createElement('div');
+              fallbackDiv.style.position = 'absolute';
+              fallbackDiv.style.top = '0';
+              fallbackDiv.style.left = '0';
               fallbackDiv.style.width = '100%';
               fallbackDiv.style.height = '100%';
               fallbackDiv.style.backgroundColor = '#f0f0f0';
               fallbackDiv.style.display = 'flex';
               fallbackDiv.style.alignItems = 'center';
               fallbackDiv.style.justifyContent = 'center';
-              fallbackDiv.style.cursor = 'pointer';
+              fallbackDiv.style.zIndex = '-1'; // Behind the ad
               fallbackDiv.innerHTML = '<span style="color:#555;">Advertisement</span>';
               
-              // Only add fallback if no content is generated after a short delay
-              setTimeout(() => {
-                if (adContainer.childNodes.length <= 1) {
-                  adContainer.appendChild(fallbackDiv);
-                }
-              }, 1000);
+              adWrapper.appendChild(fallbackDiv);
             }
           }
         } catch (e) {
@@ -145,10 +157,8 @@ const AdSpace: React.FC<AdSpaceProps> = ({
       
       // Clean up function to remove iframe when component unmounts
       return () => {
-        const frameId = position === "header" ? 'header-ad-frame' : 'top-ad-frame';
-        const frame = document.getElementById(frameId);
-        if (frame && frame.parentNode) {
-          frame.parentNode.removeChild(frame);
+        if (adRef.current) {
+          adRef.current.innerHTML = '';
         }
       };
     }
@@ -171,14 +181,10 @@ const AdSpace: React.FC<AdSpaceProps> = ({
           </div>
           <div 
             ref={adRef} 
-            className={cn(
-              "min-h-[60px] sm:min-h-[90px] flex items-center justify-center relative",
-              "w-full h-full"
-            )}
+            className="min-h-[260px] flex items-center justify-center relative"
             style={{
-              overflow: 'visible',
-              position: 'relative',
-              zIndex: 5
+              overflow: 'hidden',
+              position: 'relative'
             }}
           >
             {position !== "header" && position !== "top" && (
