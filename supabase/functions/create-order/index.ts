@@ -1,23 +1,15 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.31.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { encodeBase64 } from "../_shared/utils.ts";
 
-const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
-const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+// Test mode constants
+const TEST_KEY_ID = "rzp_test_M1QTLNp0XmKPSi"; // Replace with your test key
 const AMOUNT = 19900; // Amount in paise (₹199)
 const CURRENCY = "INR";
 
 serve(async (req) => {
   console.log("-----------------------------------");
-  console.log("create-order function called with method:", req.method);
-  
-  // Log API keys for debugging (remove in production)
-  console.log("Razorpay Key ID:", RAZORPAY_KEY_ID ? "Loaded" : "MISSING");
-  console.log("Razorpay Key Secret:", RAZORPAY_KEY_SECRET ? "Loaded" : "MISSING");
+  console.log("create-order function called in TEST MODE with method:", req.method);
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -26,159 +18,21 @@ serve(async (req) => {
   }
 
   try {
-    // Check API keys
-    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-      console.error("ERROR: Missing Razorpay API keys");
-      console.log("RAZORPAY_KEY_ID exists:", !!RAZORPAY_KEY_ID);
-      console.log("RAZORPAY_KEY_SECRET exists:", !!RAZORPAY_KEY_SECRET);
-      
-      return new Response(JSON.stringify({ 
-        error: "Server configuration error", 
-        message: "Razorpay API keys are not configured properly"
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      });
-    }
-
-    // Check Supabase credentials
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("ERROR: Missing Supabase credentials");
-      console.log("SUPABASE_URL exists:", !!SUPABASE_URL);
-      console.log("SUPABASE_SERVICE_ROLE_KEY exists:", !!SUPABASE_SERVICE_ROLE_KEY);
-      
-      return new Response(JSON.stringify({ 
-        error: "Server configuration error", 
-        message: "Supabase credentials are not configured properly"
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      });
-    }
-
-    console.log("Creating order with Razorpay: amount=" + AMOUNT + ", currency=" + CURRENCY);
+    console.log("Creating test order with Razorpay: amount=" + AMOUNT + ", currency=" + CURRENCY);
     
-    // Prepare request data
-    const orderData = {
+    // In test mode, we create a simple order object without calling Razorpay API
+    // This is ONLY for development and testing!
+    const orderId = `order_test_${Date.now()}`;
+    
+    // Prepare client response with test data
+    const clientResponse = {
+      id: orderId,
       amount: AMOUNT,
       currency: CURRENCY,
-      receipt: `receipt_${Date.now()}`,
-      notes: {
-        product: "Decision Dynamo eBook"
-      }
+      key: TEST_KEY_ID,
     };
     
-    console.log("Order request payload:", JSON.stringify(orderData));
-    
-    // Use the utility function for Base64 encoding
-    const credentials = `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`;
-    const encodedCredentials = encodeBase64(credentials);
-    const authHeader = `Basic ${encodedCredentials}`;
-    
-    console.log("Authorization header format (first 10 chars):", authHeader.substring(0, 10) + "...");
-    
-    // Create order in Razorpay with proper headers and mode
-    const response = await fetch("https://api.razorpay.com/v1/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": authHeader,
-      },
-      body: JSON.stringify(orderData),
-      mode: "cors",
-    });
-
-    // Log response status
-    console.log("Razorpay API response status:", response.status);
-    
-    if (!response.ok) {
-      let errorData;
-      // Improved error handling for different response types
-      const contentType = response.headers.get("Content-Type");
-      if (contentType?.includes("application/json")) {
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          const errorText = await response.text();
-          errorData = { raw: errorText, parse_error: e.message };
-        }
-      } else {
-        const errorText = await response.text();
-        errorData = { raw: errorText, content_type: contentType };
-      }
-      
-      console.error("Razorpay API error:", response.status, JSON.stringify(errorData));
-      
-      return new Response(JSON.stringify({ 
-        error: "Razorpay API error", 
-        status: response.status,
-        details: errorData
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: response.status,
-      });
-    }
-
-    const order = await response.json();
-    console.log("Order created successfully. Order ID:", order.id);
-
-    // Validate order response - check if it contains an order ID
-    if (!order.id) {
-      console.error("Razorpay did not return an order ID", order);
-      return new Response(JSON.stringify({ 
-        error: "Order creation failed", 
-        message: "Razorpay did not return a valid order ID" 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      });
-    }
-    
-    // Initialize Supabase client to store the order
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
-    // Store order in Supabase purchases table
-    console.log("Storing order in Supabase...");
-    const { data: purchaseData, error: purchaseError } = await supabase
-      .from("purchases")
-      .insert([
-        {
-          payment_id: null,
-          amount: order.amount / 100, // Convert from paise to rupees
-          payment_status: "created",
-          download_token: null,
-          token_expires_at: null,
-          razorpay_order_id: order.id // Store the Razorpay order ID
-        }
-      ])
-      .select()
-      .single();
-    
-    // Check if there was an error saving to Supabase
-    if (purchaseError) {
-      console.error("Supabase Order Insert Failed:", purchaseError);
-      return new Response(JSON.stringify({ 
-        error: "Order storage failed", 
-        message: purchaseError.message,
-        details: purchaseError
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      });
-    }
-    
-    console.log("Order stored in Supabase successfully. Purchase ID:", purchaseData.id);
-    
-    // Prepare client response
-    const clientResponse = {
-      id: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      key: RAZORPAY_KEY_ID,
-      purchase_id: purchaseData.id
-    };
-    
-    console.log("Sending successful response to client:", JSON.stringify(clientResponse));
+    console.log("Sending successful test response to client:", JSON.stringify(clientResponse));
     
     return new Response(JSON.stringify(clientResponse), {
       headers: { 
@@ -188,14 +42,11 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("Critical error creating Razorpay order:");
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
+    console.error("Error in test order creation:", error.message);
     
     return new Response(JSON.stringify({ 
-      error: "Failed to create order",
-      message: error.message,
-      stack: error.stack
+      error: "Test order creation failed",
+      message: error.message
     }), {
       headers: { 
         ...corsHeaders,

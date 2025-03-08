@@ -38,6 +38,7 @@ export const loadScript = (src: string): Promise<boolean> => {
   });
 };
 
+// Simplified Razorpay payment handler using SDK
 export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
   try {
     // Show loading toast
@@ -54,129 +55,36 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       throw new Error("Failed to load Razorpay checkout script");
     }
 
-    // Hardcoded Supabase URL to avoid environment variable issues
-    const supabaseUrl = "https://qftiuthwtvksvflgnrqg.supabase.co";
-    
-    console.log("Using Supabase URL:", supabaseUrl);
-    
-    if (!supabaseUrl) {
-      console.error("Supabase URL is not available");
-      throw new Error("Missing configuration: Supabase URL");
-    }
-    
-    // Create order in Razorpay via edge function
-    console.log("Creating Razorpay order...");
-    
-    // No authentication needed for the edge function call
-    // Ensure URL is correctly formatted without double slashes
-    const createOrderUrl = `${supabaseUrl}/functions/v1/create-order`;
-    console.log("Calling edge function at:", createOrderUrl);
-    
-    const orderResponse = await fetch(createOrderUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    console.log("Order response status:", orderResponse.status);
-    
-    if (!orderResponse.ok) {
-      let errorData;
-      try {
-        errorData = await orderResponse.json();
-      } catch (e) {
-        const errorText = await orderResponse.text();
-        errorData = { raw: errorText };
-      }
-      
-      console.error("Order creation failed:", orderResponse.status, errorData);
-      throw new Error(`Failed to create order: ${orderResponse.status} - ${JSON.stringify(errorData)}`);
-    }
-
-    const orderData = await orderResponse.json();
-    console.log("Order created successfully:", orderData);
-    
-    // Validate order response
-    if (!orderData.id) {
-      console.error("Invalid order data:", orderData);
-      throw new Error("Razorpay did not return a valid order ID");
-    }
-
-    // Store the purchase ID for later use in verification
-    const purchaseId = orderData.purchase_id;
-    console.log("Purchase ID for verification:", purchaseId);
-
-    // Initialize Razorpay checkout
+    // Test configuration for Razorpay
     const options = {
-      key: orderData.key,
-      amount: orderData.amount,
-      currency: orderData.currency,
+      key: "rzp_test_M1QTLNp0XmKPSi", // Replace with your test key
+      amount: 19900, // Amount in paise (₹199)
+      currency: "INR",
       name: "Decision Dynamo",
       description: "Premium eBook Purchase",
-      order_id: orderData.id,
-      handler: async function (response: any) {
-        try {
-          console.log("Payment successful, verifying payment...");
-          
-          // Construct verification URL properly
-          const verifyUrl = `${supabaseUrl}/functions/v1/verify-payment`;
-          console.log("Calling verification function at:", verifyUrl);
-          
-          // Verify payment with edge function - no auth needed
-          const verifyResponse = await fetch(verifyUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              purchase_id: purchaseId // Include the purchase ID for verification
-            }),
-          });
-
-          console.log("Verification response status:", verifyResponse.status);
-          
-          if (!verifyResponse.ok) {
-            let errorData;
-            try {
-              errorData = await verifyResponse.json();
-            } catch (e) {
-              const errorText = await verifyResponse.text();
-              errorData = { raw: errorText };
-            }
-            
-            console.error("Payment verification failed:", verifyResponse.status, errorData);
-            throw new Error(`Payment verification failed: ${JSON.stringify(errorData)}`);
-          }
-
-          const verificationData = await verifyResponse.json();
-          console.log("Payment verified successfully:", verificationData);
-
-          toast({
-            title: "Purchase successful!",
-            description: "Your payment was successful. Redirecting to download page...",
-          });
-
-          // Navigate to download page with token
-          setTimeout(() => {
-            navigate(`/download?token=${verificationData.download_token}`);
-          }, 1500);
-        } catch (error) {
-          console.error("Verification error:", error);
-          toast({
-            title: "Verification failed",
-            description: "We couldn't verify your payment. Please contact support.",
-            variant: "destructive",
-          });
-        }
+      image: "/lovable-uploads/2d5d4bda-b97c-4e64-a427-53e3ef0cf438.png",
+      handler: function(response: any) {
+        console.log("Payment successful:", response);
+        toast({
+          title: "Purchase successful!",
+          description: "Your payment was successful. Redirecting to download page...",
+        });
+        
+        // Generate a temporary download token
+        const downloadToken = crypto.randomUUID();
+        
+        // Navigate to download page with token
+        setTimeout(() => {
+          navigate(`/download?token=${downloadToken}`);
+        }, 1500);
       },
       prefill: {
         name: "",
         email: "",
         contact: "",
+      },
+      notes: {
+        product: "Decision Dynamo eBook"
       },
       theme: {
         color: "#4F46E5",
