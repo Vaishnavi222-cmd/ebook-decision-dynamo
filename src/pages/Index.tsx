@@ -4,7 +4,6 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import BookDetails from "@/components/BookDetails";
 import PricingSection from "@/components/PricingSection";
-import AdSpace from "@/components/AdSpace";
 import ContactForm from "@/components/ContactForm";
 import Footer from "@/components/Footer";
 
@@ -37,12 +36,9 @@ const Index = () => {
       <Navbar />
       <main>
         <Hero />
-        <AdSpace position="top" className="py-6" />
         <BookDetails />
-        <AdSpace position="middle" className="py-10" />
         <PricingSection />
         <ContactForm />
-        <AdSpace position="bottom" className="py-6" />
       </main>
       <Footer />
     </div>
