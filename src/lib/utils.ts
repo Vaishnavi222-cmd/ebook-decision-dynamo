@@ -235,8 +235,8 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
               instruments: [
                 {
                   method: "upi",
-                  // IMPORTANT: Force "collect" flow first for UPI to prevent immediate app redirection
-                  flows: ["collect", "intent"]
+                  // Allow both intent (app detection) and collect flow
+                  flows: ["intent", "collect"]
                 }
               ]
             }
@@ -248,22 +248,35 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
         }
       };
       
-      // Force collect flow for UPI to slow down the process and always show the UPI ID input first
+      // Add special handling for UPI payment processing
       options.upi = {
-        flow: "collect", // Force collect flow - IMPORTANT: this makes UPI ID input appear first
+        flow: "intent", // Allow auto-detection of UPI apps
         callback: {
           on_select_upi_intent: function(data: any) {
             console.log("UPI intent selected:", data);
-            // Add a longer delay before proceeding with any UPI intent
-            return new Promise(resolve => setTimeout(() => {
-              console.log("Releasing UPI intent after delay");
-              resolve(data);
-            }, 1200)); // Increased delay to ensure UPI ID input is shown first
+            // Add a significant delay before proceeding with any UPI intent
+            return new Promise(resolve => {
+              console.log("Adding deliberate delay before UPI app launch...");
+              // Toast notification to inform user about the process
+              try {
+                toast({
+                  title: "Processing UPI payment...",
+                  description: "Please wait while we prepare your UPI payment...",
+                });
+              } catch (e) {
+                console.log("Could not show toast");
+              }
+              
+              setTimeout(() => {
+                console.log("Proceeding with UPI app launch after delay");
+                resolve(data);
+              }, 2500); // Significant delay to slow down the UPI flow
+            });
           }
         }
       };
       
-      // Extra time for mobile Chrome to load all components and slow down the UPI flow
+      // Extra time for mobile Chrome to load all components
       await new Promise(resolve => setTimeout(resolve, 800));
     }
 
@@ -286,23 +299,50 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
         razorpay.on("payment.method.selected", function(data: any) {
           console.log("Payment method selected:", data);
           
-          // If UPI method selected, add extra delay and force collect flow
+          // If UPI method selected, add extra handling
           if (data && (data.method === "upi" || data.wallet === "googlepay")) {
             console.log("UPI/Google Pay selected, adding extra processing time");
-            // Set a flag in sessionStorage to remember UPI was selected
+            
+            // Set a flag to track UPI selection
             try {
               sessionStorage.setItem("upi_selected", "true");
             } catch (e) {
               console.log("Could not access sessionStorage");
             }
             
-            // Artificial delay to slow down the UPI flow
-            setTimeout(() => {
-              console.log("UPI flow delayed");
-            }, 1500);
+            // Notify user about UPI processing
+            try {
+              toast({
+                title: "UPI Payment Processing",
+                description: "Preparing your UPI payment. This may take a moment...",
+              });
+            } catch (e) {
+              console.log("Could not show toast");
+            }
+            
+            // Monkey patch Razorpay UPI handlers to slow down the UPI flow
+            // This affects the post-app-selection flow on mobile Chrome
+            try {
+              if (razorpay._checkout && razorpay._checkout.postMessage) {
+                const originalPostMessage = razorpay._checkout.postMessage;
+                razorpay._checkout.postMessage = function(...args: any[]) {
+                  // Add delay for UPI related messages to slow down the process
+                  if (args[0] && typeof args[0] === 'object' && 'upi' in args[0]) {
+                    console.log("Intercepted UPI message, adding delay");
+                    setTimeout(() => {
+                      originalPostMessage.apply(this, args);
+                    }, 1500);
+                  } else {
+                    originalPostMessage.apply(this, args);
+                  }
+                };
+              }
+            } catch (e) {
+              console.log("Could not patch Razorpay UPI handlers:", e);
+            }
           }
         });
-      }, 600); // Increased delay before opening
+      }, 800); // Increased delay before opening
     } else {
       // Standard opening for other browsers - unchanged
       razorpay.open();
