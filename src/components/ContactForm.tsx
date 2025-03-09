@@ -121,7 +121,7 @@ const ContactForm = () => {
             </div>
             <div className="flex items-center gap-2">
               <Phone className="h-5 w-5 text-primary" />
-              <span>Call us at: <a href="tel:8146805162" className="text-primary hover:underline">8146805162</a></span>
+              <span>Call us at: <a href="tel:8136805167" className="text-primary hover:underline">8136805167</a></span>
             </div>
           </div>
         </div>
