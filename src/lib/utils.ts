@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -87,7 +86,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
                            (/iPhone|iPad/.test(navigator.userAgent) && /CriOS/.test(navigator.userAgent));
     console.log("Is mobile Chrome:", isMobileChrome);
 
-    // Configure Razorpay with mobile-optimized settings
+    // Base configuration for Razorpay
     const options = {
       key: orderData.key,
       amount: orderData.amount,
@@ -167,11 +166,49 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       },
     };
 
-    // Apply mobile Chrome specific adjustments
+    // Apply mobile Chrome specific adjustments for UPI payments
     if (isMobileChrome) {
-      console.log("Applying mobile Chrome specific settings");
-      // Give extra time for mobile Chrome to be ready
-      await new Promise(resolve => setTimeout(resolve, 200));
+      console.log("Applying mobile Chrome specific UPI optimizations");
+      
+      // Add specific configurations for UPI payment methods
+      options.config = {
+        display: {
+          blocks: {
+            upi: {
+              // Customize UPI display settings
+              name: "Pay using UPI Apps",
+              instruments: [
+                {
+                  method: "upi",
+                  // Force collect flow first to prevent immediate app redirect
+                  flows: ["collect", "intent"]
+                }
+              ]
+            }
+          },
+          sequence: ["block.upi"],
+          preferences: {
+            show_default_blocks: false
+          }
+        }
+      };
+      
+      // Add hooks for handling UPI selections specifically
+      options.upi = {
+        // Force two-step flow for UPI to slow down the process
+        flow: "collect",
+        // Add extra callback to slow down intent launches
+        callback: {
+          on_select_upi_intent: function(data: any) {
+            console.log("UPI intent selected:", data);
+            // Add a delay before proceeding with the intent
+            return new Promise(resolve => setTimeout(() => resolve(data), 800));
+          }
+        }
+      };
+      
+      // Extra time for mobile Chrome to load all components
+      await new Promise(resolve => setTimeout(resolve, 400));
     }
 
     console.log("Initializing Razorpay with options:", JSON.stringify(options));
@@ -182,12 +219,27 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     
     const razorpay = new window.Razorpay(options);
 
-    // Small delay before opening to ensure proper rendering on mobile Chrome
+    // Apply different opening strategies based on browser
     if (isMobileChrome) {
+      console.log("Using delayed open for mobile Chrome");
+      // Longer delay before opening on mobile Chrome
       setTimeout(() => {
         razorpay.open();
-      }, 100);
+        
+        // Add UPI method selection listener
+        razorpay.on("payment.method.selected", function(data: any) {
+          console.log("Payment method selected:", data);
+          
+          // If UPI method selected, add extra delay
+          if (data && (data.method === "upi" || data.wallet === "googlepay")) {
+            console.log("UPI/Google Pay selected, adding extra processing time");
+            // Artificial delay to give more time for UPI flow
+            setTimeout(() => {}, 1000);
+          }
+        });
+      }, 300);
     } else {
+      // Standard opening for other browsers - unchanged
       razorpay.open();
     }
   } catch (error) {
@@ -201,4 +253,3 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     });
   }
 };
-
