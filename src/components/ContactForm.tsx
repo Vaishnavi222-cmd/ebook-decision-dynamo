@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import Container from "./ui/container";
 import { Button } from "@/components/ui/button";
@@ -118,10 +117,6 @@ const ContactForm = () => {
             <div className="flex items-center gap-2">
               <Mail className="h-5 w-5 text-primary" />
               <span>Email us at: <a href="mailto:info@odysseyvista.com" className="text-primary hover:underline">info@odysseyvista.com</a></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-primary" />
-              <span>Call us at: <a href="tel:8136805167" className="text-primary hover:underline">8136805167</a></span>
             </div>
           </div>
         </div>
