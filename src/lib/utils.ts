@@ -231,40 +231,40 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
         display: {
           blocks: {
             upi: {
-              // Customize UPI display settings
               name: "Pay using UPI Apps",
               instruments: [
                 {
                   method: "upi",
-                  // Force collect flow first to prevent immediate app redirect
+                  // IMPORTANT: Force "collect" flow first for UPI to prevent immediate app redirection
                   flows: ["collect", "intent"]
                 }
               ]
             }
           },
-          // Don't set sequence here to allow all payment methods to show
+          // No sequence property to allow all payment methods to show
           preferences: {
-            show_default_blocks: true // Set to true to show all payment options
+            show_default_blocks: true  // Show all payment options
           }
         }
       };
       
-      // Add hooks for handling UPI selections specifically
+      // Force collect flow for UPI to slow down the process and always show the UPI ID input first
       options.upi = {
-        // Force two-step flow for UPI to slow down the process
-        flow: "collect",
-        // Add extra callback to slow down intent launches
+        flow: "collect", // Force collect flow - IMPORTANT: this makes UPI ID input appear first
         callback: {
           on_select_upi_intent: function(data: any) {
             console.log("UPI intent selected:", data);
-            // Add a delay before proceeding with the intent
-            return new Promise(resolve => setTimeout(() => resolve(data), 800));
+            // Add a longer delay before proceeding with any UPI intent
+            return new Promise(resolve => setTimeout(() => {
+              console.log("Releasing UPI intent after delay");
+              resolve(data);
+            }, 1200)); // Increased delay to ensure UPI ID input is shown first
           }
         }
       };
       
-      // Extra time for mobile Chrome to load all components
-      await new Promise(resolve => setTimeout(resolve, 400));
+      // Extra time for mobile Chrome to load all components and slow down the UPI flow
+      await new Promise(resolve => setTimeout(resolve, 800));
     }
 
     console.log("Initializing Razorpay with options:", JSON.stringify(options));
@@ -282,18 +282,27 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       setTimeout(() => {
         razorpay.open();
         
-        // Add UPI method selection listener
+        // Add UPI method selection listener with extended handling
         razorpay.on("payment.method.selected", function(data: any) {
           console.log("Payment method selected:", data);
           
-          // If UPI method selected, add extra delay
+          // If UPI method selected, add extra delay and force collect flow
           if (data && (data.method === "upi" || data.wallet === "googlepay")) {
             console.log("UPI/Google Pay selected, adding extra processing time");
-            // Artificial delay to give more time for UPI flow
-            setTimeout(() => {}, 1000);
+            // Set a flag in sessionStorage to remember UPI was selected
+            try {
+              sessionStorage.setItem("upi_selected", "true");
+            } catch (e) {
+              console.log("Could not access sessionStorage");
+            }
+            
+            // Artificial delay to slow down the UPI flow
+            setTimeout(() => {
+              console.log("UPI flow delayed");
+            }, 1500);
           }
         });
-      }, 300);
+      }, 600); // Increased delay before opening
     } else {
       // Standard opening for other browsers - unchanged
       razorpay.open();
