@@ -57,7 +57,7 @@ interface RazorpayOptions {
   };
   upi?: {
     flow: string;
-    enforce_collect_flow?: boolean; // Add this property
+    enforce_collect_flow?: boolean;
     expiry_time?: number;
     callback?: {
       on_select_upi_intent?: (data: any) => Promise<any>;
@@ -110,8 +110,8 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       throw new Error("Failed to load Razorpay checkout script");
     }
     
-    // Add a small delay to ensure script is fully initialized (helps with mobile Chrome)
-    await new Promise(resolve => setTimeout(resolve, 500)); // Increased delay for better initialization
+    // Add a small delay to ensure script is fully initialized
+    await new Promise(resolve => setTimeout(resolve, 700)); // Increased delay for better initialization
 
     // Create an order
     console.log("Creating order...");
@@ -226,9 +226,9 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
 
     // Specific configurations for mobile Chrome
     if (isMobileChrome) {
-      console.log("Applying strict mobile Chrome UPI collect flow optimizations");
+      console.log("Applying optimized intent flow for mobile Chrome");
       
-      // Configure UPI payment methods with ONLY collect flow
+      // Configure UPI payment methods with intent flow optimized for mobile Chrome
       options.config = {
         display: {
           blocks: {
@@ -237,7 +237,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
               instruments: [
                 {
                   method: "upi",
-                  flows: ["collect"] // ONLY collect flow, no intent fallback
+                  flows: ["intent"]  // Only use intent flow for mobile Chrome
                 }
               ]
             },
@@ -261,23 +261,21 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
               ]
             }
           },
-          sequence: ["block.upi", "block.card", "block.netbanking"], // Order of display
+          sequence: ["block.upi", "block.card", "block.netbanking"], // Prioritize UPI
           preferences: {
             show_default_blocks: true  // Show all payment options
           }
         }
       };
       
-      // Configure UPI to ONLY use collect flow and enforce it more aggressively
+      // Configure UPI to use intent flow with optimizations
       options.upi = {
-        flow: "collect", // Force collect flow for UPI
-        enforce_collect_flow: true, // NEW: Add explicit enforcement
-        expiry_time: 300, // Set 5 minute expiry for collect flow QR
+        flow: "intent",  // Use intent flow only
         callback: {
           on_select_upi_intent: async function(data: any) {
-            console.log("UPI selection - forcing collect:", data);
-            // Modify data to force collect flow if needed
-            data.flow = "collect";
+            console.log("UPI intent selection:", data);
+            // Add a small delay to allow the browser to properly process the transition
+            await new Promise(resolve => setTimeout(resolve, 100));
             return data;
           }
         }
@@ -290,15 +288,16 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       throw new Error("Razorpay not loaded");
     }
     
-    // Create and open Razorpay with a small delay for mobile Chrome
+    // Create and open Razorpay
     if (isMobileChrome) {
-      console.log("Using delayed opening for mobile Chrome");
+      console.log("Using optimized opening for mobile Chrome");
+      // For mobile Chrome, use a small delay before opening
       setTimeout(() => {
         const razorpay = new window.Razorpay(options);
         razorpay.open();
-      }, 300);
+      }, 500);
     } else {
-      // Standard opening for other browsers - unchanged
+      // Standard opening for other browsers
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     }
