@@ -242,9 +242,9 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
               ]
             }
           },
-          sequence: ["block.upi"],
+          // Don't set sequence here to allow all payment methods to show
           preferences: {
-            show_default_blocks: false
+            show_default_blocks: true // Set to true to show all payment options
           }
         }
       };
