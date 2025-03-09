@@ -286,7 +286,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
         const baseDuration = 3000; // 3 seconds
         const networkConditionFactor = navigator.connection && 
           ('effectiveType' in navigator.connection) && 
-          (navigator.connection as any).effectiveType === '2g' ? 1.5 : 1;
+          navigator.connection.effectiveType === '2g' ? 1.5 : 1;
         
         return baseDuration * (1 + (retryAttempt * 0.3)) * networkConditionFactor;
       };
