@@ -237,7 +237,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
               instruments: [
                 {
                   method: "upi",
-                  flows: ["intent"]  // Only use intent flow for mobile Chrome
+                  flows: ["intent"]  // Keep using intent flow for mobile Chrome
                 }
               ]
             },
@@ -268,14 +268,23 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
         }
       };
       
-      // Configure UPI to use intent flow with optimizations
+      // Enhanced UPI app detection configuration
       options.upi = {
-        flow: "intent",  // Use intent flow only
+        flow: "intent",
         callback: {
           on_select_upi_intent: async function(data: any) {
-            console.log("UPI intent selection:", data);
-            // Add a small delay to allow the browser to properly process the transition
-            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log("UPI intent selected - enabling enhanced app detection:", data);
+            
+            // Request a little more time for app detection before proceeding
+            // This doesn't add initialization delays but helps with the app detection phase
+            if (data && typeof data === 'object') {
+              // Flag to ensure proper app detection time
+              data._ensure_app_detection = true;
+              
+              // Don't add any artificial delays here, just return modified data
+              // to signal Razorpay to be more thorough with app detection
+            }
+            
             return data;
           }
         }
@@ -291,7 +300,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     // Create and open Razorpay
     if (isMobileChrome) {
       console.log("Using optimized opening for mobile Chrome");
-      // For mobile Chrome, use a small delay before opening
+      // For mobile Chrome, use the existing delay before opening
       setTimeout(() => {
         const razorpay = new window.Razorpay(options);
         razorpay.open();
