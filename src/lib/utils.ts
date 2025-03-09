@@ -37,7 +37,7 @@ export const loadScript = (src: string): Promise<boolean> => {
   });
 };
 
-// Simplified Razorpay payment handler
+// Enhanced Razorpay payment handler with mobile Chrome optimizations
 export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
   try {
     // Show loading toast
@@ -53,6 +53,9 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     if (!scriptLoaded) {
       throw new Error("Failed to load Razorpay checkout script");
     }
+    
+    // Add a small delay to ensure script is fully initialized (helps with mobile Chrome)
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     // Create an order
     console.log("Creating order...");
@@ -79,7 +82,12 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     const orderData = await orderResponse.json();
     console.log("Order created successfully:", orderData);
 
-    // Configure Razorpay
+    // Detect if running on Chrome mobile
+    const isMobileChrome = /Android.*Chrome/.test(navigator.userAgent) || 
+                           (/iPhone|iPad/.test(navigator.userAgent) && /CriOS/.test(navigator.userAgent));
+    console.log("Is mobile Chrome:", isMobileChrome);
+
+    // Configure Razorpay with mobile-optimized settings
     const options = {
       key: orderData.key,
       amount: orderData.amount,
@@ -142,8 +150,13 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       },
       theme: {
         color: "#4F46E5",
+        backdrop_color: "rgba(0,0,0,0.75)" // Darker backdrop for better visibility on mobile
       },
       modal: {
+        backdropclose: false, // Prevent accidental dismissal on mobile
+        escape: false, // Disable escape key to close (mobile keyboard issues)
+        handleback: true, // Handle back button properly on mobile
+        animation: false, // Disable animations for better performance on mobile Chrome
         ondismiss: function() {
           console.log("Payment modal dismissed by user");
           toast({
@@ -154,6 +167,13 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       },
     };
 
+    // Apply mobile Chrome specific adjustments
+    if (isMobileChrome) {
+      console.log("Applying mobile Chrome specific settings");
+      // Give extra time for mobile Chrome to be ready
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
     console.log("Initializing Razorpay with options:", JSON.stringify(options));
     
     if (!window.Razorpay) {
@@ -161,7 +181,15 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     }
     
     const razorpay = new window.Razorpay(options);
-    razorpay.open();
+
+    // Small delay before opening to ensure proper rendering on mobile Chrome
+    if (isMobileChrome) {
+      setTimeout(() => {
+        razorpay.open();
+      }, 100);
+    } else {
+      razorpay.open();
+    }
   } catch (error) {
     console.error("Purchase error:", error);
     toast({
