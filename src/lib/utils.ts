@@ -1,3 +1,4 @@
+
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -6,6 +7,61 @@ declare global {
   interface Window {
     Razorpay: any;
   }
+}
+
+// Define a more comprehensive type for Razorpay options
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  image: string;
+  handler: (response: any) => Promise<void>;
+  prefill: {
+    name: string;
+    email: string;
+    contact: string;
+  };
+  notes: {
+    [key: string]: string;
+  };
+  theme: {
+    color: string;
+    backdrop_color?: string;
+  };
+  modal: {
+    backdropclose: boolean;
+    escape: boolean;
+    handleback: boolean;
+    animation: boolean;
+    ondismiss: () => void;
+  };
+  // Add missing properties for mobile Chrome optimizations
+  config?: {
+    display?: {
+      blocks?: {
+        [key: string]: {
+          name: string;
+          instruments: Array<{
+            method: string;
+            flows: string[];
+          }>;
+        };
+      };
+      sequence?: string[];
+      preferences?: {
+        show_default_blocks: boolean;
+      };
+    };
+  };
+  upi?: {
+    flow: string;
+    callback?: {
+      on_select_upi_intent?: (data: any) => Promise<any>;
+    };
+  };
 }
 
 export function cn(...inputs: ClassValue[]) {
@@ -87,7 +143,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     console.log("Is mobile Chrome:", isMobileChrome);
 
     // Base configuration for Razorpay
-    const options = {
+    const options: RazorpayOptions = {
       key: orderData.key,
       amount: orderData.amount,
       currency: orderData.currency || "INR",
