@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { Mail } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface FormState {
@@ -111,9 +111,19 @@ const ContactForm = () => {
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
             Have Questions?
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-muted-foreground mb-4">
             We're here to help. Send us a message and we'll get back to you as soon as possible.
           </p>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 mt-4 text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              <span>Email us at: <a href="mailto:info@odysseyvista.com" className="text-primary hover:underline">info@odysseyvista.com</a></span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Phone className="h-5 w-5 text-primary" />
+              <span>Call us at: <a href="tel:8146805162" className="text-primary hover:underline">8146805162</a></span>
+            </div>
+          </div>
         </div>
 
         <div className="max-w-2xl mx-auto animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 delay-300 ease-out">
