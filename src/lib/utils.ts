@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -269,7 +268,13 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
         }
       };
       
-      // Enhanced UPI app detection with retry mechanism and validation
+      // Track UPI detection state
+      let upiDetectionSuccessful = false;
+      let razorpayInstance: any = null;
+      let detectionRetryCount = 0;
+      const MAX_RETRIES = 2;
+      
+      // Enhanced UPI app detection with explicit retry mechanism
       options.upi = {
         flow: "intent",
         callback: {
@@ -277,20 +282,19 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
             console.log("UPI intent selected - initializing enhanced app detection");
             
             if (data && typeof data === 'object') {
-              // Set flags for improved app detection
+              // Set standard detection flags
               data._ensure_app_detection = true;
-              data._validate_app_presence = true;  // Additional validation flag
+              data._validate_app_presence = true;
               
-              // Track app detection attempt
+              // Track app detection start time
               const detectionStart = Date.now();
               data._detection_timestamp = detectionStart;
               
-              // Add detection metadata to help Razorpay's internal logic
+              // Configure detection metadata
               if (!data.app_detection_metadata) {
                 data.app_detection_metadata = {};
               }
               
-              // Configure detection metadata
               data.app_detection_metadata = {
                 ...data.app_detection_metadata,
                 ensure_thorough_detection: true,
@@ -300,32 +304,78 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
               };
               
               console.log("Enhanced app detection configured");
+              
+              // Create detection timeout - if UPI app detection doesn't complete within 3 seconds,
+              // we'll flag it as potentially failed and prepare for retry
+              setTimeout(() => {
+                if (!upiDetectionSuccessful && razorpayInstance && detectionRetryCount < MAX_RETRIES) {
+                  console.log(`UPI detection timeout reached (${detectionRetryCount + 1}/${MAX_RETRIES}). Retrying...`);
+                  
+                  try {
+                    // Close current instance if possible
+                    razorpayInstance.close();
+                    
+                    // Small delay before reopening
+                    setTimeout(() => {
+                      detectionRetryCount++;
+                      razorpayInstance = new window.Razorpay(options);
+                      razorpayInstance.open();
+                      
+                      console.log("Razorpay reopened for retry attempt", detectionRetryCount);
+                      
+                      // Show toast for user feedback
+                      toast({
+                        title: "Retrying UPI detection",
+                        description: "We're optimizing the payment flow for your device...",
+                      });
+                    }, 500);
+                  } catch (retryError) {
+                    console.error("Error during retry:", retryError);
+                    // Still allow regular payment flow to continue if retry fails
+                  }
+                } else if (detectionRetryCount >= MAX_RETRIES && !upiDetectionSuccessful) {
+                  console.log("Max retries reached for UPI detection");
+                  
+                  // Show toast for user feedback
+                  toast({
+                    title: "Alternative payment options",
+                    description: "UPI app detection is challenging on this device. Consider using card payment instead.",
+                  });
+                }
+              }, 3000); // 3 second timeout for UPI detection
             }
+            
+            // Mark successful detection
+            upiDetectionSuccessful = true;
             
             return data;
           }
         },
-        // Ensure proper app handling but don't enforce collection flow
+        // Ensure proper app handling while keeping options flexible
         enforce_collect_flow: false
       };
-    }
-
-    console.log("Initializing Razorpay with options:", JSON.stringify(options));
-    
-    if (!window.Razorpay) {
-      throw new Error("Razorpay not loaded");
-    }
-    
-    // Create and open Razorpay
-    if (isMobileChrome) {
-      console.log("Using optimized opening for mobile Chrome");
-      // For mobile Chrome, use the existing delay before opening
+      
+      console.log("Initializing Razorpay with options:", JSON.stringify(options));
+      
+      if (!window.Razorpay) {
+        throw new Error("Razorpay not loaded");
+      }
+      
+      // Create and store Razorpay instance for mobile Chrome
+      razorpayInstance = new window.Razorpay(options);
+      
+      // Open payment interface with short delay to ensure everything is ready
       setTimeout(() => {
-        const razorpay = new window.Razorpay(options);
-        razorpay.open();
-      }, 500);
+        razorpayInstance.open();
+      }, 300);
     } else {
-      // Standard opening for other browsers
+      // Standard opening for other browsers - no changes to existing code
+      console.log("Initializing Razorpay with options:", JSON.stringify(options));
+      
+      if (!window.Razorpay) {
+        throw new Error("Razorpay not loaded");
+      }
+      
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     }
