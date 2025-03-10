@@ -9,61 +9,6 @@ declare global {
   }
 }
 
-// Define a more comprehensive type for Razorpay options
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  image: string;
-  handler: (response: any) => Promise<void>;
-  prefill: {
-    name: string;
-    email: string;
-    contact: string;
-  };
-  notes: {
-    [key: string]: string;
-  };
-  theme: {
-    color: string;
-    backdrop_color?: string;
-  };
-  modal: {
-    backdropclose: boolean;
-    escape: boolean;
-    handleback: boolean;
-    animation: boolean;
-    ondismiss: () => void;
-  };
-  // Add missing properties for mobile Chrome optimizations
-  config?: {
-    display?: {
-      blocks?: {
-        [key: string]: {
-          name: string;
-          instruments: Array<{
-            method: string;
-            flows: string[];
-          }>;
-        };
-      };
-      sequence?: string[];
-      preferences?: {
-        show_default_blocks: boolean;
-      };
-    };
-  };
-  upi?: {
-    flow: string;
-    callback?: {
-      on_select_upi_intent?: (data: any) => Promise<any>;
-    };
-  };
-}
-
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -92,7 +37,7 @@ export const loadScript = (src: string): Promise<boolean> => {
   });
 };
 
-// Enhanced Razorpay payment handler with mobile Chrome optimizations
+// Simplified Razorpay payment handler
 export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
   try {
     // Show loading toast
@@ -108,9 +53,6 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     if (!scriptLoaded) {
       throw new Error("Failed to load Razorpay checkout script");
     }
-    
-    // Add a small delay to ensure script is fully initialized (helps with mobile Chrome)
-    await new Promise(resolve => setTimeout(resolve, 300));
 
     // Create an order
     console.log("Creating order...");
@@ -137,13 +79,8 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     const orderData = await orderResponse.json();
     console.log("Order created successfully:", orderData);
 
-    // Detect if running on Chrome mobile
-    const isMobileChrome = /Android.*Chrome/.test(navigator.userAgent) || 
-                           (/iPhone|iPad/.test(navigator.userAgent) && /CriOS/.test(navigator.userAgent));
-    console.log("Is mobile Chrome:", isMobileChrome);
-
-    // Base configuration for Razorpay
-    const options: RazorpayOptions = {
+    // Configure Razorpay
+    const options = {
       key: orderData.key,
       amount: orderData.amount,
       currency: orderData.currency || "INR",
@@ -205,13 +142,8 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       },
       theme: {
         color: "#4F46E5",
-        backdrop_color: "rgba(0,0,0,0.75)" // Darker backdrop for better visibility on mobile
       },
       modal: {
-        backdropclose: false, // Prevent accidental dismissal on mobile
-        escape: false, // Disable escape key to close (mobile keyboard issues)
-        handleback: true, // Handle back button properly on mobile
-        animation: false, // Disable animations for better performance on mobile Chrome
         ondismiss: function() {
           console.log("Payment modal dismissed by user");
           toast({
@@ -222,51 +154,6 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       },
     };
 
-    // Apply mobile Chrome specific adjustments for UPI payments
-    if (isMobileChrome) {
-      console.log("Applying mobile Chrome specific UPI optimizations");
-      
-      // Add specific configurations for UPI payment methods
-      options.config = {
-        display: {
-          blocks: {
-            upi: {
-              // Customize UPI display settings
-              name: "Pay using UPI Apps",
-              instruments: [
-                {
-                  method: "upi",
-                  // Force collect flow first to prevent immediate app redirect
-                  flows: ["collect", "intent"]
-                }
-              ]
-            }
-          },
-          // Don't set sequence here to allow all payment methods to show
-          preferences: {
-            show_default_blocks: true // Set to true to show all payment options
-          }
-        }
-      };
-      
-      // Add hooks for handling UPI selections specifically
-      options.upi = {
-        // Force two-step flow for UPI to slow down the process
-        flow: "collect",
-        // Add extra callback to slow down intent launches
-        callback: {
-          on_select_upi_intent: function(data: any) {
-            console.log("UPI intent selected:", data);
-            // Add a delay before proceeding with the intent
-            return new Promise(resolve => setTimeout(() => resolve(data), 800));
-          }
-        }
-      };
-      
-      // Extra time for mobile Chrome to load all components
-      await new Promise(resolve => setTimeout(resolve, 400));
-    }
-
     console.log("Initializing Razorpay with options:", JSON.stringify(options));
     
     if (!window.Razorpay) {
@@ -274,30 +161,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     }
     
     const razorpay = new window.Razorpay(options);
-
-    // Apply different opening strategies based on browser
-    if (isMobileChrome) {
-      console.log("Using delayed open for mobile Chrome");
-      // Longer delay before opening on mobile Chrome
-      setTimeout(() => {
-        razorpay.open();
-        
-        // Add UPI method selection listener
-        razorpay.on("payment.method.selected", function(data: any) {
-          console.log("Payment method selected:", data);
-          
-          // If UPI method selected, add extra delay
-          if (data && (data.method === "upi" || data.wallet === "googlepay")) {
-            console.log("UPI/Google Pay selected, adding extra processing time");
-            // Artificial delay to give more time for UPI flow
-            setTimeout(() => {}, 1000);
-          }
-        });
-      }, 300);
-    } else {
-      // Standard opening for other browsers - unchanged
-      razorpay.open();
-    }
+    razorpay.open();
   } catch (error) {
     console.error("Purchase error:", error);
     toast({
@@ -309,3 +173,4 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     });
   }
 };
+
