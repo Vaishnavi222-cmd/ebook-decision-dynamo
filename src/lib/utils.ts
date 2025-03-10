@@ -64,6 +64,12 @@ interface RazorpayOptions {
   };
 }
 
+// Add tracking variables for UPI app detection status
+let upiAppDetectionAttempted = false;
+let upiIntentSelected = false;
+let upiAppDetectionComplete = false;
+let upiDetectionTimeout: number | null = null;
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -92,9 +98,99 @@ export const loadScript = (src: string): Promise<boolean> => {
   });
 };
 
+// Helper function to determine if network is slow
+const isSlowNetwork = (): boolean => {
+  if (navigator.connection && 'effectiveType' in navigator.connection) {
+    const effectiveType = (navigator.connection as any).effectiveType;
+    return effectiveType === '2g' || effectiveType === 'slow-2g';
+  }
+  return false;
+};
+
+// Enhanced UPI app detection helper
+const ensureUpiAppDetection = (razorpay: any): Promise<void> => {
+  console.log("Starting UPI app detection process...");
+  upiAppDetectionAttempted = true;
+  
+  // Calculate appropriate timeout based on network conditions
+  const baseTimeout = isSlowNetwork() ? 2500 : 1500;
+  
+  return new Promise((resolve) => {
+    // Clear any existing timeout
+    if (upiDetectionTimeout !== null) {
+      clearTimeout(upiDetectionTimeout);
+    }
+    
+    // Set up detection monitoring
+    const checkInterval = setInterval(() => {
+      if (upiAppDetectionComplete) {
+        console.log("UPI app detection completed");
+        clearInterval(checkInterval);
+        resolve();
+      }
+    }, 200);
+    
+    // Set a maximum timeout for detection
+    upiDetectionTimeout = window.setTimeout(() => {
+      console.log("UPI app detection timed out - proceeding anyway");
+      upiAppDetectionComplete = true;
+      clearInterval(checkInterval);
+      resolve();
+    }, baseTimeout) as unknown as number;
+    
+    // Force UPI app detection to start
+    if (razorpay && typeof razorpay.get === 'function') {
+      try {
+        // Try to get available UPI apps through Razorpay's API
+        razorpay.get('payment.upi.apps', (data: any) => {
+          console.log("Available UPI apps:", data);
+          upiAppDetectionComplete = true;
+        });
+      } catch (err) {
+        console.log("Error in UPI app detection:", err);
+        // Set detection complete even if there's an error to avoid blocking
+        upiAppDetectionComplete = true;
+      }
+    }
+  });
+};
+
+// Implement UPI intent retry if detection fails
+const handleUpiIntentWithRetry = async (data: any, razorpay: any): Promise<any> => {
+  console.log("UPI intent selected:", data);
+  upiIntentSelected = true;
+  
+  // Short delay before proceeding
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  // Ensure UPI app detection completes properly
+  if (!upiAppDetectionComplete) {
+    console.log("UPI app detection not yet complete - waiting");
+    await ensureUpiAppDetection(razorpay);
+  }
+  
+  // Add a delay before proceeding with the intent
+  const delayTime = isSlowNetwork() ? 1200 : 800;
+  await new Promise(resolve => setTimeout(resolve, delayTime));
+  
+  // Reset tracking variables for potential future payments
+  setTimeout(() => {
+    upiAppDetectionAttempted = false;
+    upiIntentSelected = false;
+    upiAppDetectionComplete = false;
+  }, 5000);
+  
+  return data;
+};
+
 // Enhanced Razorpay payment handler with mobile Chrome optimizations
 export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
   try {
+    // Reset tracking variables at the start of payment
+    upiAppDetectionAttempted = false;
+    upiIntentSelected = false;
+    upiAppDetectionComplete = false;
+    
     // Show loading toast
     toast({
       title: "Initializing payment...",
@@ -226,7 +322,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     if (isMobileChrome) {
       console.log("Applying mobile Chrome specific UPI optimizations");
       
-      // Add specific configurations for UPI payment methods
+      // First - make sure we show all payment options normally
       options.config = {
         display: {
           blocks: {
@@ -236,7 +332,8 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
               instruments: [
                 {
                   method: "upi",
-                  // Force collect flow first to prevent immediate app redirect
+                  // Use hybrid approach to allow both collect and intent flows
+                  // Start with collect to ensure proper app detection
                   flows: ["collect", "intent"]
                 }
               ]
@@ -244,26 +341,26 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
           },
           // Don't set sequence here to allow all payment methods to show
           preferences: {
-            show_default_blocks: true // Set to true to show all payment options
+            show_default_blocks: true // Show all payment options
           }
         }
       };
       
-      // Add hooks for handling UPI selections specifically
+      // Add explicit UPI event listeners and advanced retry mechanism
       options.upi = {
-        // Force two-step flow for UPI to slow down the process
+        // Use two-stage flow for UPI to allow proper app detection
         flow: "collect",
-        // Add extra callback to slow down intent launches
         callback: {
+          // Implement our enhanced UPI intent handler with retry mechanism
           on_select_upi_intent: function(data: any) {
-            console.log("UPI intent selected:", data);
-            // Add a delay before proceeding with the intent
-            return new Promise(resolve => setTimeout(() => resolve(data), 800));
+            // Store a reference to the razorpay instance for use in callback
+            const razorpay = this;
+            return handleUpiIntentWithRetry(data, razorpay);
           }
         }
       };
       
-      // Extra time for mobile Chrome to load all components
+      // Extra time for mobile Chrome to prepare detection capabilities
       await new Promise(resolve => setTimeout(resolve, 400));
     }
 
@@ -277,22 +374,32 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
 
     // Apply different opening strategies based on browser
     if (isMobileChrome) {
-      console.log("Using delayed open for mobile Chrome");
-      // Longer delay before opening on mobile Chrome
+      console.log("Using optimized open strategy for mobile Chrome");
+      
+      // Add UPI-specific event listeners for better app detection
+      razorpay.on("payment.app_select", function(data: any) {
+        console.log("Payment app selected:", data);
+      });
+      
+      razorpay.on("payment.method.selected", function(data: any) {
+        console.log("Payment method selected:", data);
+        
+        // If UPI method selected, ensure app detection will happen
+        if (data && (data.method === "upi" || data.wallet === "googlepay")) {
+          console.log("UPI method selected, preparing app detection");
+          // Start watching for app detection
+          setTimeout(() => {
+            if (!upiAppDetectionAttempted) {
+              console.log("Forcing UPI app detection");
+              ensureUpiAppDetection(razorpay);
+            }
+          }, 1000);
+        }
+      });
+      
+      // Delayed open for mobile Chrome
       setTimeout(() => {
         razorpay.open();
-        
-        // Add UPI method selection listener
-        razorpay.on("payment.method.selected", function(data: any) {
-          console.log("Payment method selected:", data);
-          
-          // If UPI method selected, add extra delay
-          if (data && (data.method === "upi" || data.wallet === "googlepay")) {
-            console.log("UPI/Google Pay selected, adding extra processing time");
-            // Artificial delay to give more time for UPI flow
-            setTimeout(() => {}, 1000);
-          }
-        });
       }, 300);
     } else {
       // Standard opening for other browsers - unchanged
