@@ -57,20 +57,8 @@ interface RazorpayOptions {
   };
   upi?: {
     flow: string;
-    callback?: {
-      on_select_upi_intent?: (data: any) => Promise<any>;
-    };
   };
 }
-
-// Simplified UPI app detection tracking
-const UPI_APP_DETECTION = {
-  // Track detection states
-  attempted: false,
-  intentSelected: false,
-  // List of detected UPI apps
-  detectedApps: [] as string[]
-};
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -132,23 +120,9 @@ const getNetworkInfo = (): { isSlowNetwork: boolean, connectionType: string, rou
   return { isSlowNetwork, connectionType, roundTripTime };
 };
 
-// Simplified Chrome UPI intent handler
-const handleChromeUpiIntent = async (data: any): Promise<any> => {
-  console.log("Chrome UPI intent handler started:", data);
-  UPI_APP_DETECTION.intentSelected = true;
-  
-  // Just pass through the selected app data without interference
-  return data;
-};
-
-// Enhanced Razorpay payment handler with improved mobile Chrome UPI handling
+// Enhanced Razorpay payment handler with simplified mobile Chrome UPI handling
 export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
   try {
-    // Reset UPI detection state
-    UPI_APP_DETECTION.attempted = false;
-    UPI_APP_DETECTION.intentSelected = false;
-    UPI_APP_DETECTION.detectedApps = [];
-    
     // Show loading toast
     toast({
       title: "Initializing payment...",
@@ -273,29 +247,30 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       },
     };
 
-    // Apply mobile Chrome specific adjustments - simplify this part
+    // Apply simplified mobile Chrome specific adjustments
     if (isMobileChrome) {
-      console.log("Applying optimized mobile Chrome UPI handling");
+      console.log("Applying simplified mobile Chrome UPI handling");
       
+      // Show all payment options including UPI
       options.config = {
         display: {
-          // Show all payment blocks including UPI
           preferences: {
             show_default_blocks: true
           }
         }
       };
       
-      // Simplified UPI settings for Chrome - focus on intent flow without extra detection
-      options.upi = {
-        flow: "intent",
-        callback: {
-          // Simpler approach that doesn't interfere with Chrome's native flow
-          on_select_upi_intent: function(data: any) {
-            return handleChromeUpiIntent(data);
-          }
-        }
-      };
+      // Let Razorpay handle UPI intent flow without our custom handlers
+      if (!options.upi) {
+        options.upi = { flow: "intent" };
+      } else {
+        options.upi.flow = "intent";
+      }
+      
+      // Remove any custom callbacks that might interfere with Razorpay's handling
+      if (options.upi && 'callback' in options.upi) {
+        delete options.upi.callback;
+      }
     }
 
     console.log("Initializing Razorpay with options:", JSON.stringify(options));
@@ -306,7 +281,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
     
     const razorpay = new window.Razorpay(options);
 
-    // Keep the event listeners for debugging
+    // Keep event listeners for debugging, but don't add custom behavior
     if (isMobileChrome) {
       razorpay.on("payment.app_select", function(data: any) {
         console.log("Payment app selected:", data);
@@ -325,7 +300,7 @@ export const initializeRazorpayPayment = async (navigate: any, toast: any) => {
       });
     }
     
-    // Standard opening - keep as is since it's working
+    // Open Razorpay checkout
     razorpay.open();
     
   } catch (error) {
